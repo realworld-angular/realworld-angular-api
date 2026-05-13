@@ -189,7 +189,6 @@ Binary files live under `assets/images/{pizzerias|pizzas}/` (the whole `assets/`
 |---|---|---|---|
 | `GET` | `/api/orders` | List orders for the current user | Authenticated |
 | `POST` | `/api/orders` | Place a new order | Authenticated |
-| `GET` | `/api/orders/:id` | Get order details | Authenticated |
 | `PATCH` | `/api/orders/:id/cancel` | Cancel an order | Authenticated |
 | `GET` | `/api/pizzerias/:id/orders` | List orders for a pizzeria | `PIZZERIA_ADMIN` |
 

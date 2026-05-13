@@ -6,7 +6,6 @@ import { Role } from '../common/enums';
  */
 export const FEATURE_ACCESS_POLICY = {
   pizzerias: {
-    managedPizzerias: [Role.PIZZERIA_ADMIN] as const,
     create: [Role.PIZZERIA_ADMIN] as const,
     update: [Role.PIZZERIA_ADMIN] as const,
     remove: [Role.PIZZERIA_ADMIN] as const,
@@ -14,7 +13,6 @@ export const FEATURE_ACCESS_POLICY = {
   orders: {
     create: [Role.CUSTOMER] as const,
     list: [Role.CUSTOMER, Role.PIZZERIA_ADMIN] as const,
-    read: [Role.CUSTOMER, Role.PIZZERIA_ADMIN] as const,
     cancel: [Role.CUSTOMER, Role.PIZZERIA_ADMIN] as const,
     markDelivered: [Role.PIZZERIA_ADMIN] as const,
     subscribe: [Role.CUSTOMER, Role.PIZZERIA_ADMIN] as const,

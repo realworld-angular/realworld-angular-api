@@ -158,15 +158,6 @@ export class PizzeriasService {
     return { message: 'Pizzeria deleted' };
   }
 
-  async findManagedByUser(userId: string, _role: Role) {
-    const rows = await this.prisma.pizzeria.findMany({
-      where: { ownerId: userId },
-      select: PIZZERIA_SELECT,
-      orderBy: { createdAt: 'desc' },
-    });
-    return rows.map((r) => mapPizzeria(r));
-  }
-
   async findMyPizzeria(userId: string, _role: Role) {
     const row = await this.prisma.pizzeria.findFirst({
       where: { ownerId: userId },

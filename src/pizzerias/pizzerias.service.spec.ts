@@ -274,26 +274,5 @@ describe('PizzeriasService', () => {
     });
   });
 
-  describe('findManagedByUser', () => {
-    it('should return pizzerias for an admin owner', async () => {
-      const items = [
-        { id: '1', imageFilename: 'pizzeria.jpg' },
-        { id: '2', imageFilename: 'pizzeria.jpg' },
-      ];
-      mockPrisma.pizzeria.findMany.mockResolvedValue(items);
 
-      const result = await service.findManagedByUser(
-        'owner-1',
-        Role.PIZZERIA_ADMIN,
-      );
-
-      expect(mockPrisma.pizzeria.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { ownerId: 'owner-1' } }),
-      );
-      expect(result).toEqual([
-        { id: '1', image: 'pizzeria.jpg' },
-        { id: '2', image: 'pizzeria.jpg' },
-      ]);
-    });
-  });
 });

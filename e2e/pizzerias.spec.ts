@@ -88,21 +88,6 @@ test.describe('Pizzerias', () => {
     });
   });
 
-  test.describe('GET /pizzerias/admin/mine', () => {
-    test('returns 401 for unauthenticated requests', async ({ request }) => {
-      const res = await request.get('/api/pizzerias/admin/mine');
-      expect(res.status()).toBe(401);
-    });
-
-    test('returns 403 for CUSTOMER role', async ({ request }) => {
-      const client = await registerUser(request);
-      const res = await request.get('/api/pizzerias/admin/mine', {
-        headers: authHeaders(client),
-      });
-      expect(res.status()).toBe(403);
-    });
-  });
-
   test.describe('PATCH /pizzerias/:id', () => {
     test('returns 401 for unauthenticated requests', async ({ request }) => {
       const res = await request.patch('/api/pizzerias/some-id', {

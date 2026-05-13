@@ -117,20 +117,6 @@ export class OrdersController {
     return concat(initial$, updates$);
   }
 
-  @Get(':id')
-  @UseGuards(RolesGuard)
-  @Roles(...FEATURE_ACCESS_POLICY.orders.read)
-  @ApiOperation({ summary: 'Get an order by ID' })
-  @ApiResponse({ status: 200, description: 'Order details' })
-  @ApiResponse({ status: 401, description: 'Not authenticated' })
-  @ApiResponse({ status: 404, description: 'Order not found' })
-  findOne(
-    @Param('id') id: string,
-    @CurrentUser() user: { id: string; role: Role },
-  ) {
-    return this.ordersService.findOne(id, user.id, user.role);
-  }
-
   @Patch(':id/cancel')
   @UseGuards(RolesGuard)
   @Roles(...FEATURE_ACCESS_POLICY.orders.cancel)

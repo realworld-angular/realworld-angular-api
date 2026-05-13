@@ -76,20 +76,6 @@ export class PizzeriasController {
   }
 
   // Admin-only
-  @Get('admin/mine')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(...FEATURE_ACCESS_POLICY.pizzerias.managedPizzerias)
-  @ApiCookieAuth('access_token')
-  @ApiOperation({
-    summary: 'Get pizzerias managed by the current admin',
-  })
-  @ApiResponse({ status: 200, description: 'List of managed pizzerias' })
-  @ApiResponse({ status: 401, description: 'Not authenticated' })
-  @ApiResponse({ status: 403, description: 'Insufficient role' })
-  findMine(@CurrentUser() user: { id: string; role: Role }) {
-    return this.pizzeriasService.findManagedByUser(user.id, user.role);
-  }
-
   @Get('admin/my-pizzeria')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.PIZZERIA_ADMIN)

@@ -77,21 +77,6 @@ test.describe('Orders', () => {
     });
   });
 
-  test.describe('GET /orders/:id', () => {
-    test('returns 401 for unauthenticated requests', async ({ request }) => {
-      const res = await request.get('/api/orders/some-order-id');
-      expect(res.status()).toBe(401);
-    });
-
-    test('returns 404 for an order that does not belong to the user', async ({ request }) => {
-      const client = await registerUser(request);
-      const res = await request.get('/api/orders/nonexistent-order-id', {
-        headers: authHeaders(client),
-      });
-      expect(res.status()).toBe(404);
-    });
-  });
-
   test.describe('PATCH /orders/:id/cancel', () => {
     test('returns 401 for unauthenticated requests', async ({ request }) => {
       const res = await request.patch('/api/orders/some-id/cancel');

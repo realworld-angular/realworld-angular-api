@@ -40,15 +40,6 @@ describe('OrdersController authorization', () => {
     expect(guards).toContain(RolesGuard);
   });
 
-  it('enforces role policy on findOne', () => {
-    expect(Reflect.getMetadata(ROLES_KEY, method('findOne'))).toEqual(
-      FEATURE_ACCESS_POLICY.orders.read,
-    );
-    const guards =
-      Reflect.getMetadata(GUARDS_METADATA, method('findOne')) ?? [];
-    expect(guards).toContain(RolesGuard);
-  });
-
   it('enforces role policy on cancel', () => {
     expect(Reflect.getMetadata(ROLES_KEY, method('cancel'))).toEqual(
       FEATURE_ACCESS_POLICY.orders.cancel,
