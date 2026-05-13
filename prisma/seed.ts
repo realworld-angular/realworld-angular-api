@@ -1,0 +1,471 @@
+import 'dotenv/config';
+import { Pool } from 'pg';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from '../generated/prisma/client.js';
+import * as bcrypt from 'bcrypt';
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter } as any);
+
+const PIZZERIA_IMAGE_LIST = ['pizzeria.jpg', 'pizzeria.png'];
+const PIZZA_IMAGE_LIST = ['pizza.jpg', 'pizza.png'];
+
+// ---------------------------------------------------------------------------
+// Data pools
+// ---------------------------------------------------------------------------
+
+const PIZZERIA_DATA: { name: string; city: string; country: string }[] = [
+  { name: 'Crispy Corner', city: 'Naples', country: 'Italy' },
+  { name: 'La Forza Pizzeria', city: 'Palermo', country: 'Italy' },
+  { name: 'Wood & Fire', city: 'Rome', country: 'Italy' },
+  { name: 'Slice Republic', city: 'New York', country: 'United States' },
+  { name: "Mama Rosa's", city: 'Chicago', country: 'United States' },
+  { name: 'The Dough House', city: 'London', country: 'United Kingdom' },
+  { name: 'Napoli Express', city: 'Milan', country: 'Italy' },
+  { name: 'Crust & Crumble', city: 'Paris', country: 'France' },
+  { name: 'Fuoco e Farina', city: 'Lyon', country: 'France' },
+  { name: 'The Roman Slice', city: 'Bologna', country: 'Italy' },
+  { name: 'Bianco Pizzeria', city: 'Berlin', country: 'Germany' },
+  { name: "Sal's Oven", city: 'Munich', country: 'Germany' },
+  { name: 'Inferno Pies', city: 'Barcelona', country: 'Spain' },
+  { name: 'Golden Crust Co.', city: 'Madrid', country: 'Spain' },
+  { name: 'Toscana Pizza Bar', city: 'Florence', country: 'Italy' },
+  { name: 'Il Forno', city: 'Lisbon', country: 'Portugal' },
+  { name: 'Urban Pie Kitchen', city: 'Amsterdam', country: 'Netherlands' },
+  { name: 'Margherita & Co.', city: 'Copenhagen', country: 'Denmark' },
+  { name: 'Quattro Stagioni', city: 'Stockholm', country: 'Sweden' },
+  { name: 'Volare Pizzeria', city: 'Melbourne', country: 'Australia' },
+];
+
+const PIZZA_DATA: { name: string; basePrice: number }[] = [
+  { name: 'Classic Margherita', basePrice: 12.5 },
+  { name: 'Smoky Pepperoni', basePrice: 14.0 },
+  { name: 'Quattro Formaggi', basePrice: 15.5 },
+  { name: 'Prosciutto e Funghi', basePrice: 16.0 },
+  { name: 'Diavola', basePrice: 13.5 },
+  { name: 'Veggie Garden', basePrice: 13.0 },
+  { name: 'BBQ Chicken', basePrice: 14.5 },
+  { name: 'Calzone Classico', basePrice: 14.0 },
+  { name: 'Truffle Bianca', basePrice: 18.0 },
+  { name: 'Nduja & Honey', basePrice: 15.0 },
+  { name: 'Salmon & Capers', basePrice: 17.0 },
+  { name: 'Capricciosa', basePrice: 14.5 },
+  { name: 'Bresaola & Rocket', basePrice: 16.5 },
+  { name: 'Hawaiiana Revisited', basePrice: 14.0 },
+  { name: 'Burrata & Tomato', basePrice: 17.5 },
+];
+
+const PIZZA_SIZE_OPTIONS = [
+  { label: 'Small (25cm)', price: 0, sortOrder: 1 },
+  { label: 'Medium (30cm)', price: 2.5, sortOrder: 2 },
+  { label: 'Large (35cm)', price: 4, sortOrder: 3 },
+];
+
+const PIZZA_TOPPING_OPTIONS = [
+  { label: 'Extra cheese', price: 1.5, sortOrder: 1 },
+  { label: 'Mushrooms', price: 1, sortOrder: 2 },
+  { label: 'Olives', price: 1, sortOrder: 3 },
+  { label: 'Onions', price: 0.5, sortOrder: 4 },
+  { label: 'Bell peppers', price: 1, sortOrder: 5 },
+  { label: 'Jalapeños', price: 1, sortOrder: 6 },
+  { label: 'Anchovies', price: 1.5, sortOrder: 7 },
+  { label: 'Truffle oil', price: 2.5, sortOrder: 8 },
+];
+
+// ---------------------------------------------------------------------------
+// Order seed helpers
+// ---------------------------------------------------------------------------
+
+type SizeRow = { id: string; label: string; price: unknown };
+type ToppingRow = { id: string; label: string; price: unknown };
+
+type DemoSelectedSnapshot = {
+  id: string;
+  type: 'SIZE' | 'TOPPING';
+  label: string;
+  price: number;
+};
+
+function buildSizeSnapshot(row: SizeRow): DemoSelectedSnapshot {
+  return {
+    id: row.id,
+    type: 'SIZE',
+    label: row.label,
+    price: Number(row.price),
+  };
+}
+
+function buildToppingSnapshot(row: ToppingRow): DemoSelectedSnapshot {
+  return {
+    id: row.id,
+    type: 'TOPPING',
+    label: row.label,
+    price: Number(row.price),
+  };
+}
+
+function computeUnitPrice(basePrice: number, options: DemoSelectedSnapshot[]): number {
+  return basePrice + options.reduce((sum, o) => sum + o.price, 0);
+}
+
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
+
+async function main() {
+  console.log('🌱 Seeding database...');
+
+  // Seed pizza size / topping catalogs first so we can reference their ids
+  // when building order item snapshots below.
+  await prisma.pizzaSizeOption.createMany({
+    skipDuplicates: true,
+    data: PIZZA_SIZE_OPTIONS,
+  });
+  await prisma.pizzaToppingOption.createMany({
+    skipDuplicates: true,
+    data: PIZZA_TOPPING_OPTIONS,
+  });
+  console.log('✅ Pizza option catalogs seeded');
+
+  const toppingCatalogIds = (
+    await prisma.pizzaToppingOption.findMany({
+      orderBy: { sortOrder: 'asc' },
+      select: { id: true },
+    })
+  ).map((t) => t.id);
+  if (toppingCatalogIds.length === 0) {
+    throw new Error('No topping options available for pizza seed');
+  }
+
+  // Demo admin user
+  const adminHash = await bcrypt.hash('password123', 12);
+  const admin = await prisma.user.upsert({
+    where: { email: 'admin@pizza.dev' },
+    update: {},
+    create: {
+      email: 'admin@pizza.dev',
+      passwordHash: adminHash,
+      name: 'CrispyMozzarella',
+      role: 'PIZZERIA_ADMIN',
+    },
+  });
+
+  // Demo client user
+  const clientHash = await bcrypt.hash('password123', 12);
+  const client = await prisma.user.upsert({
+    where: { email: 'client@pizza.dev' },
+    update: {},
+    create: {
+      email: 'client@pizza.dev',
+      passwordHash: clientHash,
+      name: 'HungryBasil',
+      role: 'CUSTOMER',
+    },
+  });
+
+  // Seed pizzerias and pizzas — cycle bundled image option arrays
+  const seededPizzerias: { id: string; name: string }[] = [];
+  for (let pi = 0; pi < PIZZERIA_DATA.length; pi++) {
+    const pd = PIZZERIA_DATA[pi];
+    const pizzeriaFilename = PIZZERIA_IMAGE_LIST[pi % PIZZERIA_IMAGE_LIST.length]!;
+
+    const pizzeria = await prisma.pizzeria.upsert({
+      where: { name: pd.name },
+      update: {
+        city: pd.city,
+        country: pd.country,
+        imageFilename: pizzeriaFilename,
+      },
+      create: {
+        name: pd.name,
+        city: pd.city,
+        country: pd.country,
+        imageFilename: pizzeriaFilename,
+        ownerId: admin.id,
+      },
+    });
+    seededPizzerias.push({ id: pizzeria.id, name: pizzeria.name });
+
+    for (let pj = 0; pj < PIZZA_DATA.length; pj++) {
+      const pizzaData = PIZZA_DATA[pj];
+      const seedId = `seed-p${pi}-pizza-${pj}`;
+      const toppingId = toppingCatalogIds[pj % toppingCatalogIds.length]!;
+      const pizzaFilename = PIZZA_IMAGE_LIST[pj % PIZZA_IMAGE_LIST.length]!;
+
+      await prisma.pizza.upsert({
+        where: { id: seedId },
+        update: {
+          imageFilename: pizzaFilename,
+          toppings: { set: [{ id: toppingId }] },
+        },
+        create: {
+          id: seedId,
+          pizzeriaId: pizzeria.id,
+          name: pizzaData.name,
+          basePrice: pizzaData.basePrice,
+          imageFilename: pizzaFilename,
+          toppings: { connect: [{ id: toppingId }] },
+        },
+      });
+
+    }
+
+    console.log(`  ✅ ${pd.name} — 15 pizzas`);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Demo orders — one per lifecycle status
+  // ---------------------------------------------------------------------------
+
+  const sizeOptions = (await prisma.pizzaSizeOption.findMany({
+    select: { id: true, label: true, price: true },
+    orderBy: { sortOrder: 'asc' },
+  })) as SizeRow[];
+  const toppingOptions = (await prisma.pizzaToppingOption.findMany({
+    select: { id: true, label: true, price: true },
+    orderBy: { sortOrder: 'asc' },
+  })) as ToppingRow[];
+
+  const sizeByLabel = new Map(sizeOptions.map((s) => [s.label, s]));
+  const toppingByLabel = new Map(toppingOptions.map((t) => [t.label, t]));
+
+  // Helper to look up a seeded pizza by (pizzeriaIndex, pizzaIndex).
+  async function getSeededPizza(pi: number, pj: number) {
+    const id = `seed-p${pi}-pizza-${pj}`;
+    const pizza = await prisma.pizza.findUniqueOrThrow({
+      where: { id },
+      select: { id: true, basePrice: true, pizzeriaId: true },
+    });
+    return { ...pizza, basePrice: Number(pizza.basePrice) };
+  }
+
+  type DemoLine = {
+    pizzaId: string;
+    quantity: number;
+    selectedOptions: DemoSelectedSnapshot[];
+  };
+
+  function lineTotal(basePrice: number, line: DemoLine) {
+    const unit = computeUnitPrice(basePrice, line.selectedOptions);
+    return { unit, subtotal: unit * line.quantity };
+  }
+
+  type DemoOrderSpec = {
+    id: string;
+    pizzeriaIndex: number;
+    status: 'PENDING' | 'PREPARING' | 'READY' | 'DELIVERED' | 'CANCELLED';
+    delivery: { street: string; city: string; country: string };
+    billing: { street: string; city: string; country: string } | null;
+    notes?: string | null;
+    lines: Array<{
+      pi: number;
+      pj: number;
+      quantity: number;
+      sizeLabel?: string;
+      toppingLabels?: string[];
+    }>;
+  };
+
+  const mediumSize = sizeByLabel.get('Medium (30cm)');
+  const largeSize = sizeByLabel.get('Large (35cm)');
+  const smallSize = sizeByLabel.get('Small (25cm)');
+  const extraCheese = toppingByLabel.get('Extra cheese');
+  const mushrooms = toppingByLabel.get('Mushrooms');
+  const truffleOil = toppingByLabel.get('Truffle oil');
+  const olives = toppingByLabel.get('Olives');
+  const jalapenos = toppingByLabel.get('Jalapeños');
+
+  if (
+    !mediumSize ||
+    !largeSize ||
+    !smallSize ||
+    !extraCheese ||
+    !mushrooms ||
+    !truffleOil ||
+    !olives ||
+    !jalapenos
+  ) {
+    throw new Error('Missing expected size/topping options after seeding');
+  }
+
+  const demoOrders: DemoOrderSpec[] = [
+    {
+      id: 'seed-order-pending',
+      pizzeriaIndex: 0, // Crispy Corner
+      status: 'PENDING',
+      delivery: { street: '12 Basil Lane', city: 'Naples', country: 'Italy' },
+      billing: null,
+      lines: [
+        {
+          pi: 0,
+          pj: 0,
+          quantity: 1,
+          sizeLabel: 'Medium (30cm)',
+          toppingLabels: ['Extra cheese', 'Mushrooms'],
+        },
+        { pi: 0, pj: 4, quantity: 2 },
+      ],
+    },
+    {
+      id: 'seed-order-preparing',
+      pizzeriaIndex: 1, // La Forza Pizzeria
+      status: 'PREPARING',
+      delivery: { street: '12 Basil Lane', city: 'Naples', country: 'Italy' },
+      billing: null,
+      lines: [
+        { pi: 1, pj: 1, quantity: 2, sizeLabel: 'Large (35cm)' },
+      ],
+    },
+    {
+      id: 'seed-order-ready',
+      pizzeriaIndex: 2, // Wood & Fire
+      status: 'READY',
+      delivery: { street: '12 Basil Lane', city: 'Naples', country: 'Italy' },
+      billing: null,
+      lines: [
+        {
+          pi: 2,
+          pj: 8,
+          quantity: 1,
+          sizeLabel: 'Large (35cm)',
+          toppingLabels: ['Truffle oil'],
+        },
+        {
+          pi: 2,
+          pj: 5,
+          quantity: 1,
+          sizeLabel: 'Small (25cm)',
+          toppingLabels: ['Olives'],
+        },
+      ],
+    },
+    {
+      id: 'seed-order-delivered',
+      pizzeriaIndex: 3, // Slice Republic
+      status: 'DELIVERED',
+      delivery: { street: '12 Basil Lane', city: 'Naples', country: 'Italy' },
+      billing: { street: '7 Finance Road', city: 'Naples', country: 'Italy' },
+      lines: [
+        {
+          pi: 3,
+          pj: 6,
+          quantity: 1,
+          sizeLabel: 'Medium (30cm)',
+          toppingLabels: ['Jalapeños'],
+        },
+      ],
+    },
+    {
+      id: 'seed-order-cancelled',
+      pizzeriaIndex: 4, // Mama Rosa's
+      status: 'CANCELLED',
+      delivery: { street: '12 Basil Lane', city: 'Naples', country: 'Italy' },
+      billing: null,
+      notes: 'Cancelled by client — buzzer broken, please skip.',
+      lines: [
+        { pi: 4, pj: 11, quantity: 1, sizeLabel: 'Medium (30cm)' },
+      ],
+    },
+  ];
+
+  for (const spec of demoOrders) {
+    const pizzeriaId = seededPizzerias[spec.pizzeriaIndex].id;
+
+    // Skip if order already exists (idempotent reseed without raw upsert,
+    // since `Order` doesn't support nested item upsert via the typed API).
+    const existing = await prisma.order.findUnique({
+      where: { id: spec.id },
+      select: { id: true },
+    });
+    if (existing) continue;
+
+    const itemsData: Array<{
+      pizzaId: string;
+      quantity: number;
+      unitPrice: number;
+      selectedOptions: DemoLine['selectedOptions'];
+    }> = [];
+    let total = 0;
+
+    for (const line of spec.lines) {
+      const pizza = await getSeededPizza(line.pi, line.pj);
+      if (pizza.pizzeriaId !== pizzeriaId) {
+        throw new Error(
+          `Demo order ${spec.id}: pizza seed-p${line.pi}-pizza-${line.pj} does not belong to pizzeria index ${spec.pizzeriaIndex}`,
+        );
+      }
+
+      const selectedOptions: DemoLine['selectedOptions'] = [];
+      if (line.sizeLabel) {
+        const size = sizeByLabel.get(line.sizeLabel)!;
+        selectedOptions.push(buildSizeSnapshot(size));
+      }
+      for (const label of line.toppingLabels ?? []) {
+        const topping = toppingByLabel.get(label)!;
+        selectedOptions.push(buildToppingSnapshot(topping));
+      }
+
+      const { unit, subtotal } = lineTotal(pizza.basePrice, {
+        pizzaId: pizza.id,
+        quantity: line.quantity,
+        selectedOptions,
+      });
+      itemsData.push({
+        pizzaId: pizza.id,
+        quantity: line.quantity,
+        unitPrice: unit,
+        selectedOptions,
+      });
+      total += subtotal;
+    }
+
+    await prisma.order.create({
+      data: {
+        id: spec.id,
+        clientId: client.id,
+        pizzeriaId,
+        deliveryStreetAddress: spec.delivery.street,
+        deliveryCity: spec.delivery.city,
+        deliveryCountry: spec.delivery.country,
+        billingStreetAddress: spec.billing?.street ?? null,
+        billingCity: spec.billing?.city ?? null,
+        billingCountry: spec.billing?.country ?? null,
+        notes: spec.notes ?? null,
+        status: spec.status,
+        total,
+        items: { create: itemsData },
+      },
+    });
+  }
+
+  console.log(`✅ Demo orders seeded — ${demoOrders.length} orders covering every status`);
+
+  // ---------------------------------------------------------------------------
+  // Summary
+  // ---------------------------------------------------------------------------
+
+  console.log('');
+  console.log('✅ Demo data seeded — 20 pizzerias × 15 pizzas = 300 pizzas total');
+  console.log('');
+  console.log('Demo accounts (password: password123):');
+  console.log('  admin@pizza.dev     (PIZZERIA_ADMIN, owns all 20 pizzerias)');
+  console.log('  client@pizza.dev    (CUSTOMER)');
+  console.log('');
+  console.log('Demo orders for client@pizza.dev:');
+  for (const o of demoOrders) {
+    console.log(`  ${o.id.padEnd(22)} ${o.status.padEnd(10)} on ${seededPizzerias[o.pizzeriaIndex].name}`);
+  }
+  console.log('');
+  console.log('Note: the OrderJob advances non-terminal orders based on updatedAt.');
+  console.log('  With default delays (PENDING→PREPARING 2m, PREPARING→READY 5m,');
+  console.log('  READY→DELIVERED 3m), demo PENDING/PREPARING/READY orders will progress');
+  console.log('  shortly after seed. DELIVERED and CANCELLED orders are terminal.');
+}
+
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(() => prisma.$disconnect().then(() => pool.end()));

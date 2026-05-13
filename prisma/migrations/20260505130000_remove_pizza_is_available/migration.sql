@@ -1,0 +1,1 @@
+ALTER TABLE "Pizza" DROP COLUMN IF EXISTS "isAvailable";

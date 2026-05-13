@@ -1,0 +1,140 @@
+// Sliced — Prisma Schema
+// learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  CUSTOMER
+  PIZZERIA_ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  PREPARING
+  READY
+  DELIVERED
+  CANCELLED
+}
+
+
+
+// ---------------------------------------------------------------------------
+// Models
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(CUSTOMER)
+  name         String   @unique // server-generated, immutable
+  avatarPath   String? // stored server-side, never exposed publicly
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  ownedPizzerias    Pizzeria[]           @relation("PizzeriaOwner")
+  orders            Order[]
+}
+
+model Pizzeria {
+  id             String  @id @default(cuid())
+  name           String  @unique // server-generated random
+  city           String  @db.VarChar(120)
+  country        String  @db.VarChar(120)
+  imageFilename  String  @db.VarChar(255) // basename in Angular `public/images/pizzerias/`
+  ownerId        String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  owner  User            @relation("PizzeriaOwner", fields: [ownerId], references: [id])
+  pizzas      Pizza[]
+  orders      Order[]
+}
+
+model Pizza {
+  id            String  @id @default(cuid())
+  pizzeriaId    String
+  name          String // server-generated random
+  basePrice     Float
+  imageFilename String  @db.VarChar(255) // basename in Angular `public/images/pizzas/`
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  pizzeria    Pizzeria             @relation(fields: [pizzeriaId], references: [id], onDelete: Cascade)
+  orderItems  OrderItem[]
+  toppings    PizzaToppingOption[]
+}
+
+model PizzaSizeOption {
+  id        String  @id @default(cuid())
+  label     String
+  price     Float   @default(0)
+  sortOrder Int     @default(0)
+
+  @@unique([label])
+  @@index([sortOrder])
+}
+
+model PizzaToppingOption {
+  id        String  @id @default(cuid())
+  label     String
+  price     Float   @default(0)
+  sortOrder Int     @default(0)
+
+  pizzas Pizza[]
+
+  @@unique([label])
+  @@index([sortOrder])
+}
+
+model Order {
+  id                    String      @id @default(cuid())
+  clientId              String
+  pizzeriaId            String
+  deliveryStreetAddress String      @db.VarChar(300)
+  deliveryCity          String      @db.VarChar(120)
+  deliveryCountry       String      @db.VarChar(120)
+  /// When all null, billing address is the same as the delivery address
+  billingStreetAddress  String?     @db.VarChar(300)
+  billingCity           String?     @db.VarChar(120)
+  billingCountry        String?     @db.VarChar(120)
+  notes                 String?     @db.VarChar(300)
+  status          OrderStatus @default(PENDING)
+  total           Float
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  client   User        @relation(fields: [clientId], references: [id])
+  pizzeria Pizzeria    @relation(fields: [pizzeriaId], references: [id])
+  items    OrderItem[]
+}
+
+model OrderItem {
+  id              String  @id @default(cuid())
+  orderId         String
+  pizzaId         String
+  quantity        Int
+  unitPrice       Float
+  selectedOptions Json // snapshot of chosen options at order time
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  pizza Pizza @relation(fields: [pizzaId], references: [id])
+}

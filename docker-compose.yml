@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pizza_marketplace_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: pizza
+      POSTGRES_PASSWORD: pizza
+      POSTGRES_DB: pizza_marketplace
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
