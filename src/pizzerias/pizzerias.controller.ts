@@ -76,7 +76,7 @@ export class PizzeriasController {
   }
 
   // Admin-only
-  @Get('admin/my-pizzeria')
+  @Get('admin/pizzeria')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.PIZZERIA_ADMIN)
   @ApiCookieAuth('access_token')
@@ -121,7 +121,7 @@ export class PizzeriasController {
     return this.pizzeriasService.create(dto, user.id);
   }
 
-  @Patch('admin/my-pizzeria')
+  @Patch('admin/pizzeria')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(...FEATURE_ACCESS_POLICY.pizzerias.update)
   @ApiCookieAuth('access_token')
@@ -137,7 +137,7 @@ export class PizzeriasController {
     return this.pizzeriasService.updateMine(dto, user.id);
   }
 
-  @Delete('admin/my-pizzeria')
+  @Delete('admin/pizzeria')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(...FEATURE_ACCESS_POLICY.pizzerias.remove)
   @ApiCookieAuth('access_token')

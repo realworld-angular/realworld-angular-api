@@ -114,7 +114,7 @@ export class PizzasController {
   }
 
   // Admin routes — no pizzeriaId needed, resolved from ownership
-  @Get('admin/my-pizzeria/pizzas')
+  @Get('admin/pizzeria/pizzas')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.PIZZERIA_ADMIN)
   @ApiCookieAuth('access_token')
@@ -128,7 +128,7 @@ export class PizzasController {
     return this.pizzasService.findAll(pizzeriaId, name);
   }
 
-  @Post('admin/my-pizzeria/pizzas')
+  @Post('admin/pizzeria/pizzas')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.PIZZERIA_ADMIN)
   @ApiCookieAuth('access_token')
@@ -142,7 +142,7 @@ export class PizzasController {
     return this.pizzasService.create(pizzeriaId, dto, user.id, user.role);
   }
 
-  @Patch('admin/my-pizzeria/pizzas/:pizzaId')
+  @Patch('admin/pizzeria/pizzas/:pizzaId')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.PIZZERIA_ADMIN)
   @ApiCookieAuth('access_token')
@@ -163,7 +163,7 @@ export class PizzasController {
     );
   }
 
-  @Delete('admin/my-pizzeria/pizzas/:pizzaId')
+  @Delete('admin/pizzeria/pizzas/:pizzaId')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.PIZZERIA_ADMIN)
   @ApiCookieAuth('access_token')
