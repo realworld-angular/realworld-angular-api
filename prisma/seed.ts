@@ -38,22 +38,37 @@ const PIZZERIA_DATA: { name: string; city: string; country: string }[] = [
   { name: 'Volare Pizzeria', city: 'Melbourne', country: 'Australia' },
 ];
 
-const PIZZA_DATA: { name: string; basePrice: number }[] = [
-  { name: 'Classic Margherita', basePrice: 12.5 },
-  { name: 'Smoky Pepperoni', basePrice: 14.0 },
-  { name: 'Quattro Formaggi', basePrice: 15.5 },
-  { name: 'Prosciutto e Funghi', basePrice: 16.0 },
-  { name: 'Diavola', basePrice: 13.5 },
-  { name: 'Veggie Garden', basePrice: 13.0 },
-  { name: 'BBQ Chicken', basePrice: 14.5 },
-  { name: 'Calzone Classico', basePrice: 14.0 },
-  { name: 'Truffle Bianca', basePrice: 18.0 },
-  { name: 'Nduja & Honey', basePrice: 15.0 },
-  { name: 'Salmon & Capers', basePrice: 17.0 },
-  { name: 'Capricciosa', basePrice: 14.5 },
-  { name: 'Bresaola & Rocket', basePrice: 16.5 },
-  { name: 'Hawaiiana Revisited', basePrice: 14.0 },
-  { name: 'Burrata & Tomato', basePrice: 17.5 },
+const PIZZA_RECIPES = [
+  { name: 'Margherita', basePrice: 12.5, toppingLabels: ['Tomato slices', 'Fresh basil'] },
+  { name: 'Pepperoni', basePrice: 14.0, toppingLabels: ['Pepperoni', 'Extra cheese'] },
+  { name: 'Quattro Formaggi', basePrice: 15.5, toppingLabels: ['Extra cheese', 'Parmesan flakes'] },
+  { name: 'Prosciutto e Funghi', basePrice: 16.0, toppingLabels: ['Prosciutto', 'Mushrooms'] },
+  { name: 'Diavola', basePrice: 13.5, toppingLabels: ['Pepperoni', 'Jalapeños'] },
+  { name: 'Capricciosa', basePrice: 15.0, toppingLabels: ['Mushrooms', 'Ham', 'Olives', 'Artichoke hearts'] },
+  { name: 'Hawaiian', basePrice: 14.0, toppingLabels: ['Ham', 'Pineapple'] },
+  { name: 'Vegetariana', basePrice: 13.0, toppingLabels: ['Bell peppers', 'Onions', 'Mushrooms', 'Spinach'] },
+  { name: 'BBQ Chicken', basePrice: 14.5, toppingLabels: ['Bacon', 'Onions', 'Bell peppers'] },
+  { name: 'Nduja & Honey', basePrice: 15.0, toppingLabels: ['Pepperoni', 'Fresh basil'] },
+  { name: 'Bresaola & Arugula', basePrice: 16.5, toppingLabels: ['Arugula', 'Parmesan flakes'] },
+  { name: 'Burrata e Pomodoro', basePrice: 17.5, toppingLabels: ['Fresh basil', 'Tomato slices'] },
+  { name: 'Marinara', basePrice: 11.0, toppingLabels: ['Tomato slices', 'Fresh garlic', 'Fresh basil'] },
+  { name: 'Bianca', basePrice: 14.0, toppingLabels: ['Extra cheese', 'Fresh garlic', 'Arugula'] },
+  { name: 'Pugliese', basePrice: 13.0, toppingLabels: ['Tomato slices', 'Onions', 'Anchovies'] },
+  { name: 'Calabrese', basePrice: 14.5, toppingLabels: ['Pepperoni', 'Bell peppers', 'Onions'] },
+  { name: 'Napoletana', basePrice: 14.0, toppingLabels: ['Anchovies', 'Olives', 'Fresh garlic'] },
+  { name: 'Siciliana', basePrice: 14.5, toppingLabels: ['Anchovies', 'Olives', 'Tomato slices'] },
+  { name: 'Carbonara', basePrice: 15.5, toppingLabels: ['Bacon', 'Onions', 'Parmesan flakes'] },
+  { name: 'Parma', basePrice: 17.0, toppingLabels: ['Prosciutto', 'Arugula', 'Parmesan flakes'] },
+  { name: 'Rustica', basePrice: 14.0, toppingLabels: ['Mushrooms', 'Bacon', 'Onions'] },
+  { name: 'Fior di Latte', basePrice: 13.5, toppingLabels: ['Tomato slices', 'Fresh basil', 'Extra cheese'] },
+  { name: 'Tonno e Cipolla', basePrice: 15.0, toppingLabels: ['Anchovies', 'Onions', 'Olives'] },
+  { name: 'Porcini e Tartufo', basePrice: 18.0, toppingLabels: ['Mushrooms', 'Truffle oil'] },
+  { name: 'Spinaci e Aglio', basePrice: 13.5, toppingLabels: ['Spinach', 'Fresh garlic', 'Extra cheese'] },
+  { name: 'Ortolana', basePrice: 14.0, toppingLabels: ['Bell peppers', 'Onions', 'Spinach', 'Tomato slices'] },
+  { name: 'Genovese', basePrice: 15.5, toppingLabels: ['Prosciutto', 'Mushrooms', 'Fresh basil'] },
+  { name: 'Crostino', basePrice: 12.5, toppingLabels: ['Tomato slices', 'Fresh garlic', 'Anchovies'] },
+  { name: 'Americana', basePrice: 15.0, toppingLabels: ['Pepperoni', 'Bacon', 'Extra cheese'] },
+  { name: 'Campagnola', basePrice: 14.0, toppingLabels: ['Mushrooms', 'Bell peppers', 'Onions', 'Olives'] },
 ];
 
 const PIZZA_SIZE_OPTIONS = [
@@ -71,7 +86,34 @@ const PIZZA_TOPPING_OPTIONS = [
   { label: 'Jalapeños', price: 1, sortOrder: 6 },
   { label: 'Anchovies', price: 1.5, sortOrder: 7 },
   { label: 'Truffle oil', price: 2.5, sortOrder: 8 },
+  { label: 'Pepperoni', price: 1.5, sortOrder: 9 },
+  { label: 'Bacon', price: 1.5, sortOrder: 10 },
+  { label: 'Ham', price: 1.5, sortOrder: 11 },
+  { label: 'Pineapple', price: 1, sortOrder: 12 },
+  { label: 'Spinach', price: 1, sortOrder: 13 },
+  { label: 'Fresh garlic', price: 0.5, sortOrder: 14 },
+  { label: 'Fresh basil', price: 0.5, sortOrder: 15 },
+  { label: 'Arugula', price: 1, sortOrder: 16 },
+  { label: 'Tomato slices', price: 1, sortOrder: 17 },
+  { label: 'Artichoke hearts', price: 1.5, sortOrder: 18 },
+  { label: 'Prosciutto', price: 2, sortOrder: 19 },
+  { label: 'Parmesan flakes', price: 1, sortOrder: 20 },
 ];
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function pickRandomN<T>(arr: T[], n: number, seed: number): T[] {
+  const indices = arr.map((_, i) => i);
+  let s = seed;
+  for (let i = indices.length - 1; i > 0; i--) {
+    s = (s * 1103515245 + 12345) | 0;
+    const j = (s >>> 0) % (i + 1);
+    [indices[i], indices[j]] = [indices[j], indices[i]];
+  }
+  return indices.slice(0, n).map((i) => arr[i]);
+}
 
 // ---------------------------------------------------------------------------
 // Order seed helpers
@@ -105,7 +147,10 @@ function buildToppingSnapshot(row: ToppingRow): DemoSelectedSnapshot {
   };
 }
 
-function computeUnitPrice(basePrice: number, options: DemoSelectedSnapshot[]): number {
+function computeUnitPrice(
+  basePrice: number,
+  options: DemoSelectedSnapshot[],
+): number {
   return basePrice + options.reduce((sum, o) => sum + o.price, 0);
 }
 
@@ -128,13 +173,15 @@ async function main() {
   });
   console.log('✅ Pizza option catalogs seeded');
 
-  const toppingCatalogIds = (
-    await prisma.pizzaToppingOption.findMany({
-      orderBy: { sortOrder: 'asc' },
-      select: { id: true },
-    })
-  ).map((t) => t.id);
-  if (toppingCatalogIds.length === 0) {
+  const toppingLabelToId = new Map(
+    (
+      await prisma.pizzaToppingOption.findMany({
+        orderBy: { sortOrder: 'asc' },
+        select: { id: true, label: true },
+      })
+    ).map((t) => [t.label, t.id] as const),
+  );
+  if (toppingLabelToId.size === 0) {
     throw new Error('No topping options available for pizza seed');
   }
 
@@ -168,7 +215,8 @@ async function main() {
   const seededPizzerias: { id: string; name: string }[] = [];
   for (let pi = 0; pi < PIZZERIA_DATA.length; pi++) {
     const pd = PIZZERIA_DATA[pi];
-    const pizzeriaFilename = PIZZERIA_IMAGE_LIST[pi % PIZZERIA_IMAGE_LIST.length]!;
+    const pizzeriaFilename =
+      PIZZERIA_IMAGE_LIST[pi % PIZZERIA_IMAGE_LIST.length];
 
     const pizzeria = await prisma.pizzeria.upsert({
       where: { name: pd.name },
@@ -187,28 +235,31 @@ async function main() {
     });
     seededPizzerias.push({ id: pizzeria.id, name: pizzeria.name });
 
-    for (let pj = 0; pj < PIZZA_DATA.length; pj++) {
-      const pizzaData = PIZZA_DATA[pj];
+    const selectedRecipes = pickRandomN(PIZZA_RECIPES, 15, pi);
+    for (let pj = 0; pj < selectedRecipes.length; pj++) {
+      const recipe = selectedRecipes[pj];
       const seedId = `seed-p${pi}-pizza-${pj}`;
-      const toppingId = toppingCatalogIds[pj % toppingCatalogIds.length]!;
-      const pizzaFilename = PIZZA_IMAGE_LIST[pj % PIZZA_IMAGE_LIST.length]!;
+      const pizzaFilename = PIZZA_IMAGE_LIST[pj % PIZZA_IMAGE_LIST.length];
+
+      const toppingIds = recipe.toppingLabels
+        .map((label) => toppingLabelToId.get(label))
+        .filter((id): id is string => id !== undefined);
 
       await prisma.pizza.upsert({
         where: { id: seedId },
         update: {
           imageFilename: pizzaFilename,
-          toppings: { set: [{ id: toppingId }] },
+          toppings: { set: toppingIds.map((id) => ({ id })) },
         },
         create: {
           id: seedId,
           pizzeriaId: pizzeria.id,
-          name: pizzaData.name,
-          basePrice: pizzaData.basePrice,
+          name: recipe.name,
+          basePrice: recipe.basePrice,
           imageFilename: pizzaFilename,
-          toppings: { connect: [{ id: toppingId }] },
+          toppings: { connect: toppingIds.map((id) => ({ id })) },
         },
       });
-
     }
 
     console.log(`  ✅ ${pd.name} — 15 pizzas`);
@@ -313,9 +364,7 @@ async function main() {
       status: 'PREPARING',
       delivery: { street: '12 Basil Lane', city: 'Naples', country: 'Italy' },
       billing: null,
-      lines: [
-        { pi: 1, pj: 1, quantity: 2, sizeLabel: 'Large (35cm)' },
-      ],
+      lines: [{ pi: 1, pj: 1, quantity: 2, sizeLabel: 'Large (35cm)' }],
     },
     {
       id: 'seed-order-ready',
@@ -363,9 +412,7 @@ async function main() {
       delivery: { street: '12 Basil Lane', city: 'Naples', country: 'Italy' },
       billing: null,
       notes: 'Cancelled by client — buzzer broken, please skip.',
-      lines: [
-        { pi: 4, pj: 11, quantity: 1, sizeLabel: 'Medium (30cm)' },
-      ],
+      lines: [{ pi: 4, pj: 11, quantity: 1, sizeLabel: 'Medium (30cm)' }],
     },
   ];
 
