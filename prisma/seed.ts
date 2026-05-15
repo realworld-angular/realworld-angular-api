@@ -122,38 +122,6 @@ function pickRandomN<T>(arr: T[], n: number, seed: number): T[] {
 type SizeRow = { id: string; label: string; price: unknown };
 type ToppingRow = { id: string; label: string; price: unknown };
 
-type DemoSelectedSnapshot = {
-  id: string;
-  type: 'SIZE' | 'TOPPING';
-  label: string;
-  price: number;
-};
-
-function buildSizeSnapshot(row: SizeRow): DemoSelectedSnapshot {
-  return {
-    id: row.id,
-    type: 'SIZE',
-    label: row.label,
-    price: Number(row.price),
-  };
-}
-
-function buildToppingSnapshot(row: ToppingRow): DemoSelectedSnapshot {
-  return {
-    id: row.id,
-    type: 'TOPPING',
-    label: row.label,
-    price: Number(row.price),
-  };
-}
-
-function computeUnitPrice(
-  basePrice: number,
-  options: DemoSelectedSnapshot[],
-): number {
-  return basePrice + options.reduce((sum, o) => sum + o.price, 0);
-}
-
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
@@ -291,15 +259,21 @@ async function main() {
     return { ...pizza, basePrice: Number(pizza.basePrice) };
   }
 
+  const sizeById = new Map(sizeOptions.map((s) => [s.id, s]));
+  const toppingById = new Map(toppingOptions.map((t) => [t.id, t]));
+
   type DemoLine = {
     pizzaId: string;
     quantity: number;
-    selectedOptions: DemoSelectedSnapshot[];
+    selectedSizeId: string | null;
+    selectedOptionIds: string[];
   };
 
-  function lineTotal(basePrice: number, line: DemoLine) {
-    const unit = computeUnitPrice(basePrice, line.selectedOptions);
-    return { unit, subtotal: unit * line.quantity };
+  function lineTotal(basePrice: number, quantity: number, selectedSizeId: string | null, selectedOptionIds: string[]) {
+    const sizePrice = selectedSizeId ? Number(sizeById.get(selectedSizeId)?.price ?? 0) : 0;
+    const toppingsPrice = selectedOptionIds.reduce((sum, id) => sum + Number(toppingById.get(id)?.price ?? 0), 0);
+    const unit = Number(basePrice) + sizePrice + toppingsPrice;
+    return { unit, subtotal: unit * quantity };
   }
 
   type DemoOrderSpec = {
@@ -430,8 +404,8 @@ async function main() {
     const itemsData: Array<{
       pizzaId: string;
       quantity: number;
-      unitPrice: number;
-      selectedOptions: DemoLine['selectedOptions'];
+      selectedSizeId: string | null;
+      toppingIds: string[];
     }> = [];
     let total = 0;
 
@@ -443,26 +417,17 @@ async function main() {
         );
       }
 
-      const selectedOptions: DemoLine['selectedOptions'] = [];
-      if (line.sizeLabel) {
-        const size = sizeByLabel.get(line.sizeLabel)!;
-        selectedOptions.push(buildSizeSnapshot(size));
-      }
-      for (const label of line.toppingLabels ?? []) {
-        const topping = toppingByLabel.get(label)!;
-        selectedOptions.push(buildToppingSnapshot(topping));
-      }
+      const selectedSizeId = line.sizeLabel ? (sizeByLabel.get(line.sizeLabel)?.id ?? null) : null;
+      const selectedOptionIds = (line.toppingLabels ?? [])
+        .map((label) => toppingByLabel.get(label)?.id ?? '')
+        .filter((id) => id !== '');
 
-      const { unit, subtotal } = lineTotal(pizza.basePrice, {
-        pizzaId: pizza.id,
-        quantity: line.quantity,
-        selectedOptions,
-      });
+      const { unit, subtotal } = lineTotal(pizza.basePrice, line.quantity, selectedSizeId, selectedOptionIds);
       itemsData.push({
         pizzaId: pizza.id,
         quantity: line.quantity,
-        unitPrice: unit,
-        selectedOptions,
+        selectedSizeId,
+        toppingIds: selectedOptionIds,
       });
       total += subtotal;
     }
@@ -481,7 +446,18 @@ async function main() {
         notes: spec.notes ?? null,
         status: spec.status,
         total,
-        items: { create: itemsData },
+        items: {
+          create: itemsData.map((item) => ({
+            pizzaId: item.pizzaId,
+            quantity: item.quantity,
+            selectedSizeId: item.selectedSizeId,
+            toppings: {
+              create: item.toppingIds.map((toppingId) => ({
+                toppingId,
+              })),
+            },
+          })),
+        },
       },
     });
   }

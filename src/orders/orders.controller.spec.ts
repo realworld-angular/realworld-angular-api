@@ -1,6 +1,7 @@
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { OrdersController } from './orders.controller';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { ROLES_KEY } from '../auth/decorators/roles.decorator';
 import { FEATURE_ACCESS_POLICY } from '../auth/feature-access.policy';
@@ -9,9 +10,17 @@ describe('OrdersController authorization', () => {
   const method = (name: keyof OrdersController) =>
     OrdersController.prototype[name];
 
-  it('requires JWT auth on the controller', () => {
+  it('uses OptionalJwtAuthGuard on the controller', () => {
     const guards = Reflect.getMetadata(GUARDS_METADATA, OrdersController) ?? [];
-    expect(guards).toContain(JwtAuthGuard);
+    expect(guards).toContain(OptionalJwtAuthGuard);
+    expect(guards).not.toContain(JwtAuthGuard);
+  });
+
+  it('reconstructCart has no roles guard', () => {
+    const guards =
+      Reflect.getMetadata(GUARDS_METADATA, method('reconstructCart')) ?? [];
+    expect(guards).toHaveLength(0);
+    expect(Reflect.getMetadata(ROLES_KEY, method('reconstructCart'))).toBeUndefined();
   });
 
   it('enforces role policy on create', () => {
@@ -19,6 +28,7 @@ describe('OrdersController authorization', () => {
       FEATURE_ACCESS_POLICY.orders.create,
     );
     const guards = Reflect.getMetadata(GUARDS_METADATA, method('create')) ?? [];
+    expect(guards).toContain(JwtAuthGuard);
     expect(guards).toContain(RolesGuard);
   });
 
@@ -28,6 +38,7 @@ describe('OrdersController authorization', () => {
     );
     const guards =
       Reflect.getMetadata(GUARDS_METADATA, method('findAll')) ?? [];
+    expect(guards).toContain(JwtAuthGuard);
     expect(guards).toContain(RolesGuard);
   });
 
@@ -37,6 +48,7 @@ describe('OrdersController authorization', () => {
     );
     const guards =
       Reflect.getMetadata(GUARDS_METADATA, method('subscribeToOrder')) ?? [];
+    expect(guards).toContain(JwtAuthGuard);
     expect(guards).toContain(RolesGuard);
   });
 
@@ -45,6 +57,7 @@ describe('OrdersController authorization', () => {
       FEATURE_ACCESS_POLICY.orders.cancel,
     );
     const guards = Reflect.getMetadata(GUARDS_METADATA, method('cancel')) ?? [];
+    expect(guards).toContain(JwtAuthGuard);
     expect(guards).toContain(RolesGuard);
   });
 
@@ -54,6 +67,7 @@ describe('OrdersController authorization', () => {
     );
     const guards =
       Reflect.getMetadata(GUARDS_METADATA, method('markDelivered')) ?? [];
+    expect(guards).toContain(JwtAuthGuard);
     expect(guards).toContain(RolesGuard);
   });
 });

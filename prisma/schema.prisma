@@ -88,6 +88,8 @@ model PizzaSizeOption {
   price     Float   @default(0)
   sortOrder Int     @default(0)
 
+  orderItems OrderItem[]
+
   @@unique([label])
   @@index([sortOrder])
 }
@@ -98,7 +100,8 @@ model PizzaToppingOption {
   price     Float   @default(0)
   sortOrder Int     @default(0)
 
-  pizzas Pizza[]
+  pizzas     Pizza[]
+  orderItems OrderItemTopping[]
 
   @@unique([label])
   @@index([sortOrder])
@@ -128,13 +131,24 @@ model Order {
 }
 
 model OrderItem {
-  id              String  @id @default(cuid())
-  orderId         String
-  pizzaId         String
-  quantity        Int
-  unitPrice       Float
-  selectedOptions Json // snapshot of chosen options at order time
+  id             String  @id @default(cuid())
+  orderId        String
+  pizzaId        String
+  quantity       Int
+  selectedSizeId String?
 
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  pizza Pizza @relation(fields: [pizzaId], references: [id])
+  order    Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  pizza    Pizza              @relation(fields: [pizzaId], references: [id])
+  size     PizzaSizeOption?   @relation(fields: [selectedSizeId], references: [id])
+  toppings OrderItemTopping[]
+}
+
+model OrderItemTopping {
+  orderItemId String
+  toppingId   String
+
+  orderItem OrderItem           @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  topping   PizzaToppingOption  @relation(fields: [toppingId], references: [id])
+
+  @@id([orderItemId, toppingId])
 }

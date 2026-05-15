@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { CartReconstructDto } from './dto/cart-reconstruct.dto';
 import { Role, OrderStatus } from '../common/enums';
 import { OrderEventsService } from '../order-events/order-events.service';
 import type { Address } from '../common/dto/address.dto';
@@ -30,9 +31,13 @@ const ORDER_SELECT = {
     select: {
       id: true,
       quantity: true,
-      unitPrice: true,
-      selectedOptions: true,
-      pizza: { select: { id: true, name: true } },
+      pizza: { select: { id: true, name: true, basePrice: true } },
+      size: { select: { id: true, label: true, price: true } },
+      toppings: {
+        select: {
+          topping: { select: { id: true, label: true, price: true } },
+        },
+      },
     },
   },
 };
@@ -49,9 +54,13 @@ const ADMIN_ORDER_LIST_SELECT = {
     select: {
       id: true,
       quantity: true,
-      unitPrice: true,
-      selectedOptions: true,
-      pizza: { select: { id: true, name: true } },
+      pizza: { select: { id: true, name: true, basePrice: true } },
+      size: { select: { id: true, label: true, price: true } },
+      toppings: {
+        select: {
+          topping: { select: { id: true, label: true, price: true } },
+        },
+      },
     },
   },
 };
@@ -142,6 +151,136 @@ export class OrdersService {
     };
   }
 
+  private mapOrderItem(item: {
+    id: string;
+    quantity: number;
+    pizza: { id: string; name: string; basePrice: number };
+    size: { id: string; label: string; price: number } | null;
+    toppings: { topping: { id: string; label: string; price: number } }[];
+  }) {
+    const sizePrice = item.size ? Number(item.size.price) : 0;
+    const toppingsPrice = item.toppings.reduce(
+      (sum: number, t) => sum + Number(t.topping.price),
+      0,
+    );
+    const unitPrice = Number(item.pizza.basePrice) + sizePrice + toppingsPrice;
+
+    const selectedOptions: Array<{
+      id: string;
+      type: 'SIZE' | 'TOPPING';
+      label: string;
+      price: number;
+    }> = [];
+
+    if (item.size) {
+      selectedOptions.push({
+        id: item.size.id,
+        type: 'SIZE',
+        label: item.size.label,
+        price: Number(item.size.price),
+      });
+    }
+
+    for (const t of item.toppings) {
+      selectedOptions.push({
+        id: t.topping.id,
+        type: 'TOPPING',
+        label: t.topping.label,
+        price: Number(t.topping.price),
+      });
+    }
+
+    return {
+      id: item.id,
+      quantity: item.quantity,
+      unitPrice,
+      selectedOptions,
+      pizza: { id: item.pizza.id, name: item.pizza.name },
+    };
+  }
+
+  async reconstructCart(dto: CartReconstructDto) {
+    const pizzeria = await this.prisma.pizzeria.findUnique({
+      where: { id: dto.pizzeriaId },
+      select: { id: true, name: true, imageFilename: true },
+    });
+    if (!pizzeria) throw new NotFoundException('Pizzeria not found');
+
+    const pizzaIds = [...new Set(dto.items.map((i) => i.pizzaId))];
+    const pizzas = await this.prisma.pizza.findMany({
+      where: { id: { in: pizzaIds } },
+      select: { id: true, name: true, basePrice: true, imageFilename: true },
+    });
+    const pizzaMap = new Map(pizzas.map((p) => [p.id, p]));
+
+    const [sizeOptions, toppingOptions] = await Promise.all([
+      this.prisma.pizzaSizeOption.findMany({
+        select: { id: true, label: true, price: true },
+      }),
+      this.prisma.pizzaToppingOption.findMany({
+        select: { id: true, label: true, price: true },
+      }),
+    ]);
+    const sizeMap = new Map(sizeOptions.map((s) => [s.id, s]));
+    const toppingMap = new Map(toppingOptions.map((t) => [t.id, t]));
+
+    const items = dto.items.map((item) => {
+      const pizza = pizzaMap.get(item.pizzaId);
+      if (!pizza) {
+        throw new BadRequestException(`Pizza not found: ${item.pizzaId}`);
+      }
+
+      const size = item.selectedSizeId ? (sizeMap.get(item.selectedSizeId) ?? null) : null;
+      if (item.selectedSizeId && !size) {
+        throw new BadRequestException(`Size option not found: ${item.selectedSizeId}`);
+      }
+
+      const uniqueToppingIds = [...new Set(item.selectedOptionIds ?? [])];
+      const extraToppings = uniqueToppingIds
+        .map((id) => toppingMap.get(id))
+        .filter((t): t is NonNullable<typeof t> => t != null);
+      if (extraToppings.length !== uniqueToppingIds.length) {
+        throw new BadRequestException('One or more topping options not found');
+      }
+
+      const sizePrice = size ? Number(size.price) : 0;
+      const toppingsPrice = extraToppings.reduce((sum, t) => sum + Number(t.price), 0);
+      const totalPrice = (Number(pizza.basePrice) + sizePrice + toppingsPrice) * item.quantity;
+
+      const compositeId = `${item.pizzaId}:${item.selectedSizeId ?? ''}:${uniqueToppingIds.sort().join(',')}`;
+
+      return {
+        id: compositeId,
+        pizza: {
+          id: pizza.id,
+          name: pizza.name,
+          image: pizza.imageFilename,
+          basePrice: pizza.basePrice,
+        },
+        quantity: item.quantity,
+        size: size
+          ? { id: size.id, label: size.label, price: Number(size.price) }
+          : null,
+        extraToppings: extraToppings.map((t) => ({
+          id: t.id,
+          label: t.label,
+          price: Number(t.price),
+        })),
+        totalPrice,
+      };
+    });
+
+    return {
+      pizzeria: {
+        id: pizzeria.id,
+        name: pizzeria.name,
+        image: pizzeria.imageFilename,
+      },
+      items,
+      total: items.reduce((sum, item) => sum + item.totalPrice, 0),
+    };
+  }
+
   async create(dto: CreateOrderDto, clientId: string, role: Role) {
     if (role !== Role.CUSTOMER) {
       throw new ForbiddenException('Only customers may place orders');
@@ -171,7 +310,6 @@ export class OrdersService {
       }
     }
 
-    // Validate all pizzas belong to the pizzeria
     const pizzaIds = dto.items.map((i) => i.pizzaId);
     const pizzas = await this.prisma.pizza.findMany({
       where: {
@@ -180,7 +318,6 @@ export class OrdersService {
       },
       select: { id: true, basePrice: true },
     });
-
     if (pizzas.length !== pizzaIds.length) {
       throw new BadRequestException(
         'One or more pizzas are not from this pizzeria',
@@ -188,69 +325,47 @@ export class OrdersService {
     }
 
     const [sizeOptions, toppingOptions] = await Promise.all([
-      this.prisma.pizzaSizeOption.findMany({
-        select: { id: true, label: true, price: true },
-      }),
-      this.prisma.pizzaToppingOption.findMany({
-        select: { id: true, label: true, price: true },
-      }),
+      this.prisma.pizzaSizeOption.findMany({ select: { id: true, price: true } }),
+      this.prisma.pizzaToppingOption.findMany({ select: { id: true, price: true } }),
     ]);
-    const sizeById = new Map(sizeOptions.map((option) => [option.id, option]));
-    const toppingById = new Map(
-      toppingOptions.map((option) => [option.id, option]),
-    );
+    const sizeById = new Map(sizeOptions.map((s) => [s.id, Number(s.price)]));
+    const toppingById = new Map(toppingOptions.map((t) => [t.id, Number(t.price)]));
 
-    // Calculate total
     let total = 0;
     const itemsData = dto.items.map((item) => {
       const pizza = pizzas.find((p) => p.id === item.pizzaId)!;
-      const selectedOptions: Array<{
-        id: string;
-        type: 'SIZE' | 'TOPPING';
-        label: string;
-        price: number;
-      }> = [];
 
+      let sizePrice = 0;
       if (item.selectedSizeId) {
-        const selectedSize = sizeById.get(item.selectedSizeId);
-        if (!selectedSize) {
+        const price = sizeById.get(item.selectedSizeId);
+        if (price === undefined) {
           throw new BadRequestException(
             `Invalid size option selected for pizza ${item.pizzaId}`,
           );
         }
-        selectedOptions.push({
-          id: selectedSize.id,
-          type: 'SIZE',
-          label: selectedSize.label,
-          price: Number(selectedSize.price),
-        });
+        sizePrice = price;
       }
 
       const uniqueToppingIds = [...new Set(item.selectedOptionIds ?? [])];
+      let toppingsPrice = 0;
       for (const toppingId of uniqueToppingIds) {
-        const topping = toppingById.get(toppingId);
-        if (!topping) {
+        const price = toppingById.get(toppingId);
+        if (price === undefined) {
           throw new BadRequestException(
             `Invalid topping option selected for pizza ${item.pizzaId}`,
           );
         }
-        selectedOptions.push({
-          id: topping.id,
-          type: 'TOPPING',
-          label: topping.label,
-          price: Number(topping.price),
-        });
+        toppingsPrice += price;
       }
-
-      const optionTotal = selectedOptions.reduce((sum, o) => sum + o.price, 0);
-      const unitPrice = Number(pizza.basePrice) + optionTotal;
-      total += unitPrice * item.quantity;
+      const itemTotal =
+        (Number(pizza.basePrice) + sizePrice + toppingsPrice) * item.quantity;
+      total += itemTotal;
 
       return {
         pizzaId: item.pizzaId,
         quantity: item.quantity,
-        unitPrice,
-        selectedOptions,
+        selectedSizeId: item.selectedSizeId ?? null,
+        uniqueToppingIds,
       };
     });
 
@@ -266,15 +381,28 @@ export class OrdersService {
         billingCountry: billingCountry,
         notes: dto.notes,
         total,
-        items: { create: itemsData },
+        items: {
+          create: itemsData.map((item) => ({
+            pizzaId: item.pizzaId,
+            quantity: item.quantity,
+            selectedSizeId: item.selectedSizeId,
+            toppings: {
+              create: item.uniqueToppingIds.map((toppingId) => ({
+                toppingId,
+              })),
+            },
+          })),
+        },
       },
       select: ORDER_SELECT,
     });
+
+    const items = created.items.map((item) => this.mapOrderItem(item));
     this.orderEvents.emit(clientId, {
       orderId: created.id,
       status: created.status as OrderStatus,
     });
-    return this.mapOrderRow(created);
+    return { ...this.mapOrderRow(created), items };
   }
 
   async findAll(userId: string, role: Role, pizzeriaId?: string) {
@@ -284,11 +412,14 @@ export class OrdersService {
         select: ORDER_SELECT,
         orderBy: { createdAt: 'desc' },
       });
-      return orders.map((o) => this.mapOrderRow(o));
+      return orders.map((o) => ({
+        ...this.mapOrderRow(o),
+        items: o.items.map((item) => this.mapOrderItem(item)),
+      }));
     }
 
     if (role === Role.PIZZERIA_ADMIN) {
-      return this.prisma.order.findMany({
+      const orders = await this.prisma.order.findMany({
         where: {
           pizzeria: { ownerId: userId },
           ...(pizzeriaId ? { pizzeriaId } : {}),
@@ -296,6 +427,10 @@ export class OrdersService {
         select: ADMIN_ORDER_LIST_SELECT,
         orderBy: { createdAt: 'desc' },
       });
+      return orders.map((o) => ({
+        ...o,
+        items: o.items.map((item) => this.mapOrderItem(item)),
+      }));
     }
 
     return [];
@@ -320,18 +455,17 @@ export class OrdersService {
     if (!order) throw new NotFoundException('Order not found');
 
     const isOwner = order.client.id === userId;
-    // PIZZERIA_ADMIN may only read orders belonging to their own pizzerias
     const isPizzeriaAdmin =
       role === Role.PIZZERIA_ADMIN &&
       (order.pizzeria as { ownerId: string }).ownerId === userId;
 
     if (!isOwner && !isPizzeriaAdmin) throw new ForbiddenException();
 
-    // Strip internal ownerId from the response
     const { pizzeria, ...rest } = order;
     const mapped = this.mapOrderRow(rest);
     return {
       ...mapped,
+      items: order.items.map((item) => this.mapOrderItem(item)),
       pizzeria: {
         id: pizzeria.id,
         name: pizzeria.name,
@@ -366,7 +500,10 @@ export class OrdersService {
       orderId,
       status: OrderStatus.CANCELLED,
     });
-    return this.mapOrderRow(updated);
+    return {
+      ...this.mapOrderRow(updated),
+      items: updated.items.map((item) => this.mapOrderItem(item)),
+    };
   }
 
   async markDelivered(orderId: string, userId: string, role: Role) {
@@ -398,6 +535,9 @@ export class OrdersService {
       orderId,
       status: OrderStatus.DELIVERED,
     });
-    return this.mapOrderRow(updated);
+    return {
+      ...this.mapOrderRow(updated),
+      items: updated.items.map((item) => this.mapOrderItem(item)),
+    };
   }
 }

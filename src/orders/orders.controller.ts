@@ -21,7 +21,9 @@ import {
 } from '@nestjs/swagger';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { CartReconstructDto } from './dto/cart-reconstruct.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -32,15 +34,26 @@ import { FEATURE_ACCESS_POLICY } from '../auth/feature-access.policy';
 @ApiTags('Orders')
 @ApiCookieAuth('access_token')
 @Controller('orders')
-@UseGuards(JwtAuthGuard)
+@UseGuards(OptionalJwtAuthGuard)
 export class OrdersController {
   constructor(
     private readonly ordersService: OrdersService,
     private readonly orderEventsService: OrderEventsService,
   ) {}
 
+  @Post('cart')
+  @ApiOperation({
+    summary: 'Reconstruct cart display data from IDs (public)',
+  })
+  @ApiResponse({ status: 200, description: 'Reconstructed cart data' })
+  @ApiResponse({ status: 404, description: 'Pizzeria not found' })
+  @ApiResponse({ status: 400, description: 'Invalid item IDs' })
+  reconstructCart(@Body() dto: CartReconstructDto) {
+    return this.ordersService.reconstructCart(dto);
+  }
+
   @Post()
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(...FEATURE_ACCESS_POLICY.orders.create)
   @ApiOperation({ summary: 'Place a new order' })
   @ApiResponse({ status: 201, description: 'Order created' })
@@ -55,7 +68,7 @@ export class OrdersController {
   }
 
   @Get()
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(...FEATURE_ACCESS_POLICY.orders.list)
   @ApiOperation({ summary: 'List orders for the current user' })
   @ApiQuery({ name: 'pizzeriaId', required: false })
@@ -87,7 +100,7 @@ export class OrdersController {
   }
 
   @Sse(':id/subscribe')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(...FEATURE_ACCESS_POLICY.orders.subscribe)
   @ApiOperation({
     summary: 'Subscribe to real-time status updates for a single order (SSE)',
@@ -118,7 +131,7 @@ export class OrdersController {
   }
 
   @Patch(':id/cancel')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(...FEATURE_ACCESS_POLICY.orders.cancel)
   @ApiOperation({ summary: 'Cancel an order' })
   @ApiResponse({ status: 200, description: 'Order cancelled' })
@@ -134,7 +147,7 @@ export class OrdersController {
   }
 
   @Patch(':id/delivered')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(...FEATURE_ACCESS_POLICY.orders.markDelivered)
   @ApiOperation({ summary: 'Mark an order as delivered' })
   @ApiResponse({ status: 200, description: 'Order marked as delivered' })

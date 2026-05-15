@@ -32,10 +32,6 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     return this.client.pizzeria;
   }
 
-  get pizzeriaStaff() {
-    return this.client.pizzeriaStaff;
-  }
-
   get pizza() {
     return this.client.pizza;
   }
@@ -50,6 +46,10 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
 
   get orderItem() {
     return this.client.orderItem;
+  }
+
+  get orderItemTopping() {
+    return this.client.orderItemTopping;
   }
 
   get pizzaToppingOption() {
