@@ -103,5 +103,19 @@
     "moduleNameMapper": {
       "^(.*)\\.js$": "$1"
     }
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@nestjs/core",
+      "@prisma/engines",
+      "@scarf/scarf",
+      "bcrypt",
+      "esbuild",
+      "prisma",
+      "unrs-resolver"
+    ],
+    "ignoredBuiltDependencies": [
+      "@scarf/scarf"
+    ]
   }
 }
