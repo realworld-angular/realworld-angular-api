@@ -9,7 +9,12 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   private client: PrismaClient;
 
   constructor() {
-    this.pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    this.pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: {
+        rejectUnauthorized: false,
+      },
+    });
   }
 
   async onModuleInit() {
