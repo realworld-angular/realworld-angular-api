@@ -66,7 +66,7 @@ test.describe('Pizzas', () => {
   test.describe('POST /pizzerias/:pizzeriaId/pizzas', () => {
     test('returns 401 for unauthenticated requests', async ({ request }) => {
       const res = await request.post('/api/pizzerias/some-id/pizzas', {
-        data: { basePrice: '10.00', imageFilename: 'pizza.jpg' },
+        data: { basePrice: '10.00', imageFilename: 'margherita.png' },
       });
       expect(res.status()).toBe(401);
     });
@@ -75,7 +75,7 @@ test.describe('Pizzas', () => {
       const client = await registerUser(request);
       const res = await request.post('/api/pizzerias/some-id/pizzas', {
         headers: authHeaders(client),
-        data: { basePrice: '10.00', imageFilename: 'pizza.jpg' },
+        data: { basePrice: '10.00', imageFilename: 'margherita.png' },
       });
       expect(res.status()).toBe(403);
     });

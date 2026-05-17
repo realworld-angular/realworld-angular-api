@@ -9,7 +9,38 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter } as any);
 
 const PIZZERIA_IMAGE_LIST = Array.from({ length: 10 }, (_, i) => `pizzeria${i + 1}.png`);
-const PIZZA_IMAGE_LIST = ['pizza.jpg', 'pizza.png'];
+const PIZZA_IMAGE_MAP: Record<string, string> = {
+  'Margherita': 'margherita.png',
+  'Pepperoni': 'pepperoni.png',
+  'Quattro Formaggi': 'quattro-formaggi.png',
+  'Prosciutto e Funghi': 'prosciutto-funghi.png',
+  'Diavola': 'diavola.png',
+  'Capricciosa': 'capricciosa.png',
+  'Hawaiian': 'hawaiian.png',
+  'Vegetariana': 'vegetariana.png',
+  'BBQ Chicken': 'bbq-chicken.png',
+  'Nduja & Honey': 'nduja-honey.png',
+  'Bresaola & Arugula': 'bresaola-arugula.png',
+  'Burrata e Pomodoro': 'burrata-pomodoro.png',
+  'Marinara': 'marinara.png',
+  'Bianca': 'bianca.png',
+  'Pugliese': 'pugliese.png',
+  'Calabrese': 'calabrese.png',
+  'Napoletana': 'napoletana.png',
+  'Siciliana': 'siciliana.png',
+  'Carbonara': 'carbonara.png',
+  'Parma': 'parma.png',
+  'Rustica': 'rustica.png',
+  'Fior di Latte': 'fior-di-atte.png',
+  'Tonno e Cipolla': 'tonno-cipolla.png',
+  'Porcini e Tartufo': 'porcini-tartufo.png',
+  'Spinaci e Aglio': 'spinaci-aglio.png',
+  'Ortolana': 'ortolana.png',
+  'Genovese': 'genovese.png',
+  'Crostino': 'crostino.png',
+  'Americana': 'americana.png',
+  'Campagnola': 'campagnola.png',
+};
 
 // ---------------------------------------------------------------------------
 // Data pools
@@ -207,7 +238,7 @@ async function main() {
     for (let pj = 0; pj < selectedRecipes.length; pj++) {
       const recipe = selectedRecipes[pj];
       const seedId = `seed-p${pi}-pizza-${pj}`;
-      const pizzaFilename = PIZZA_IMAGE_LIST[pj % PIZZA_IMAGE_LIST.length];
+      const pizzaFilename = PIZZA_IMAGE_MAP[recipe.name];
 
       const toppingIds = recipe.toppingLabels
         .map((label) => toppingLabelToId.get(label))

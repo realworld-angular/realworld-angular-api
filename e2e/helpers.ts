@@ -170,7 +170,7 @@ export async function createPizza(
     headers: authHeaders(user),
     data: {
       basePrice: '12.99',
-      imageFilename: 'pizza.jpg',
+      imageFilename: 'margherita.png',
       toppingIds: [firstToppingId],
       ...overrides,
     },
