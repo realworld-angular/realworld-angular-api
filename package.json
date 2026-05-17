@@ -10,6 +10,7 @@
   },
   "scripts": {
     "build": "nest build && rm -rf dist/assets && cp -R assets dist/assets",
+    "postinstall": "prisma generate",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
