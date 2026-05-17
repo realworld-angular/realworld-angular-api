@@ -8,7 +8,7 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter } as any);
 
-const PIZZERIA_IMAGE_LIST = ['pizzeria.jpg', 'pizzeria.png'];
+const PIZZERIA_IMAGE_LIST = Array.from({ length: 10 }, (_, i) => `pizzeria${i + 1}.png`);
 const PIZZA_IMAGE_LIST = ['pizza.jpg', 'pizza.png'];
 
 // ---------------------------------------------------------------------------

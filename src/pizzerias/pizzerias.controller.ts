@@ -8,8 +8,6 @@ import {
   Body,
   Query,
   UseGuards,
-  HttpCode,
-  HttpStatus,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -96,7 +94,9 @@ export class PizzeriasController {
     schema: { type: 'array', items: { type: 'string' } },
   })
   listBundledPizzeriaImages(): string[] {
-    return listImagesInDir(resolvePizzeriasImagesDir());
+    return listImagesInDir(resolvePizzeriasImagesDir()).filter(
+      (name) => !name.startsWith('banner-'),
+    );
   }
 
   @Get(':id')
