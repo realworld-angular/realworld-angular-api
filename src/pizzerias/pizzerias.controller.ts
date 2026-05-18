@@ -150,33 +150,4 @@ export class PizzeriasController {
     return this.pizzeriasService.removeMine(user.id);
   }
 
-  @Patch(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(...FEATURE_ACCESS_POLICY.pizzerias.update)
-  @ApiCookieAuth('access_token')
-  @ApiOperation({ summary: 'Update a pizzeria' })
-  @ApiResponse({ status: 200, description: 'Pizzeria updated' })
-  @ApiResponse({ status: 401, description: 'Not authenticated' })
-  @ApiResponse({ status: 403, description: 'Insufficient role' })
-  @ApiResponse({ status: 404, description: 'Pizzeria not found' })
-  update(
-    @Param('id') id: string,
-    @Body() dto: UpdatePizzeriaDto,
-    @CurrentUser() user: { id: string },
-  ) {
-    return this.pizzeriasService.update(id, dto, user.id);
-  }
-
-  @Delete(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(...FEATURE_ACCESS_POLICY.pizzerias.remove)
-  @ApiCookieAuth('access_token')
-  @ApiOperation({ summary: 'Delete a pizzeria' })
-  @ApiResponse({ status: 200, description: 'Pizzeria deleted' })
-  @ApiResponse({ status: 401, description: 'Not authenticated' })
-  @ApiResponse({ status: 403, description: 'Insufficient role' })
-  @ApiResponse({ status: 404, description: 'Pizzeria not found' })
-  remove(@Param('id') id: string, @CurrentUser() user: { id: string }) {
-    return this.pizzeriasService.remove(id, user.id);
-  }
 }

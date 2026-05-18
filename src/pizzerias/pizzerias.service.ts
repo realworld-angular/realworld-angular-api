@@ -135,12 +135,6 @@ export class PizzeriasService {
     return mapPizzeria(updated);
   }
 
-  async remove(id: string, userId: string) {
-    await this.assertOwnerRow(id, userId);
-    await this.prisma.pizzeria.delete({ where: { id } });
-    return { message: 'Pizzeria deleted' };
-  }
-
   async updateMine(dto: UpdatePizzeriaDto, userId: string) {
     const pizzeria = await this.prisma.pizzeria.findFirst({
       where: { ownerId: userId },

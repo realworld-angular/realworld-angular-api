@@ -177,17 +177,6 @@ export class PizzasController {
     return this.pizzasService.remove(pizzeriaId, pizzaId, user.id, user.role);
   }
 
-  @Get('pizzerias/:pizzeriaId/pizzas/:pizzaId')
-  @ApiOperation({ summary: 'Get a pizza by ID' })
-  @ApiResponse({ status: 200, description: 'Pizza details' })
-  @ApiResponse({ status: 404, description: 'Pizza not found' })
-  findOne(
-    @Param('pizzeriaId') pizzeriaId: string,
-    @Param('pizzaId') pizzaId: string,
-  ) {
-    return this.pizzasService.findOne(pizzeriaId, pizzaId);
-  }
-
   @Post('pizzerias/:pizzeriaId/pizzas')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.PIZZERIA_ADMIN)

@@ -246,33 +246,4 @@ describe('PizzeriasService', () => {
     });
   });
 
-  describe('remove', () => {
-    it('should delete pizzeria when user is owner', async () => {
-      mockPrisma.pizzeria.findUnique.mockResolvedValue({
-        id: '1',
-        ownerId: 'owner-1',
-      });
-      mockPrisma.pizzeria.delete.mockResolvedValue({});
-
-      const result = await service.remove('1', 'owner-1');
-
-      expect(mockPrisma.pizzeria.delete).toHaveBeenCalledWith({
-        where: { id: '1' },
-      });
-      expect(result).toEqual({ message: 'Pizzeria deleted' });
-    });
-
-    it('should throw ForbiddenException when user is not owner', async () => {
-      mockPrisma.pizzeria.findUnique.mockResolvedValue({
-        id: '1',
-        ownerId: 'owner-1',
-      });
-
-      await expect(service.remove('1', 'other-user')).rejects.toThrow(
-        ForbiddenException,
-      );
-    });
-  });
-
-
 });

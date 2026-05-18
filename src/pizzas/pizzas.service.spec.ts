@@ -92,37 +92,6 @@ describe('PizzasService', () => {
     });
   });
 
-  describe('findOne', () => {
-    it('returns pizza when found', async () => {
-      const pizza = {
-        id: 'pizza-1',
-        name: 'Smoky Salami',
-        imageFilename: 'pizza.jpg',
-        basePrice: 10,
-        toppings: [],
-      };
-      mockPrisma.pizza.findFirst.mockResolvedValue(pizza);
-
-      const result = await service.findOne('pizzeria-1', 'pizza-1');
-
-      expect(result).toEqual({
-        id: 'pizza-1',
-        name: 'Smoky Salami',
-        basePrice: 10,
-        toppings: [],
-        image: 'pizza.jpg',
-      });
-    });
-
-    it('throws when pizza is not found', async () => {
-      mockPrisma.pizza.findFirst.mockResolvedValue(null);
-
-      await expect(service.findOne('pizzeria-1', 'missing')).rejects.toThrow(
-        NotFoundException,
-      );
-    });
-  });
-
   describe('create', () => {
     const dto = {
       basePrice: 12.5,

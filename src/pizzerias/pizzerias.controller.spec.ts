@@ -22,31 +22,15 @@ describe('PizzeriasController authorization', () => {
     ).toContain(OptionalJwtAuthGuard);
   });
 
-  it('enforces role policy on create/update/remove', () => {
+  it('enforces role policy on create', () => {
     expect(Reflect.getMetadata(ROLES_KEY, method('create'))).toEqual(
       FEATURE_ACCESS_POLICY.pizzerias.create,
-    );
-    expect(Reflect.getMetadata(ROLES_KEY, method('update'))).toEqual(
-      FEATURE_ACCESS_POLICY.pizzerias.update,
-    );
-    expect(Reflect.getMetadata(ROLES_KEY, method('remove'))).toEqual(
-      FEATURE_ACCESS_POLICY.pizzerias.remove,
     );
 
     const createGuards =
       Reflect.getMetadata(GUARDS_METADATA, method('create')) ?? [];
-    const updateGuards =
-      Reflect.getMetadata(GUARDS_METADATA, method('update')) ?? [];
-    const removeGuards =
-      Reflect.getMetadata(GUARDS_METADATA, method('remove')) ?? [];
 
     expect(createGuards).toEqual(
-      expect.arrayContaining([JwtAuthGuard, RolesGuard]),
-    );
-    expect(updateGuards).toEqual(
-      expect.arrayContaining([JwtAuthGuard, RolesGuard]),
-    );
-    expect(removeGuards).toEqual(
       expect.arrayContaining([JwtAuthGuard, RolesGuard]),
     );
   });

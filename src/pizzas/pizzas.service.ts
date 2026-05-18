@@ -53,15 +53,6 @@ export class PizzasService {
     return rows.map((r) => mapPizza(r));
   }
 
-  async findOne(pizzeriaId: string, pizzaId: string) {
-    const row = await this.prisma.pizza.findFirst({
-      where: { id: pizzaId, pizzeriaId },
-      select: PIZZA_SELECT,
-    });
-    if (!row) throw new NotFoundException('Pizza not found');
-    return mapPizza(row);
-  }
-
   async create(
     pizzeriaId: string,
     dto: CreatePizzaDto,
