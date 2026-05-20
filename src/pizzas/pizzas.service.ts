@@ -9,6 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { NamesService } from '../names/names.service';
 import { CreatePizzaDto } from './dto/create-pizza.dto';
 import { UpdatePizzaDto } from './dto/update-pizza.dto';
+import { PizzaFilterDto } from './dto/pizza-filter.dto';
 import { Role } from '../common/enums';
 
 const PIZZA_SELECT = {
@@ -37,16 +38,26 @@ export class PizzasService {
     private readonly names: NamesService,
   ) {}
 
-  async findAll(pizzeriaId: string, nameContains?: string) {
-    const trimmedName = nameContains?.trim();
-    const nameFilter = trimmedName
-      ? { name: { contains: trimmedName, mode: 'insensitive' as const } }
-      : {};
+  async findAll(pizzeriaId: string, dto: PizzaFilterDto) {
+    const { name, maxPrice } = dto;
+
+    const where: {
+      pizzeriaId: string;
+      name?: { contains: string; mode: 'insensitive' };
+      basePrice?: { lte?: number };
+    } = { pizzeriaId };
+
+    const trimmedName = name?.trim();
+    if (trimmedName) {
+      where.name = { contains: trimmedName, mode: 'insensitive' };
+    }
+
+    if (maxPrice !== undefined) {
+      where.basePrice = { lte: maxPrice };
+    }
+
     const rows = await this.prisma.pizza.findMany({
-      where: {
-        pizzeriaId,
-        ...nameFilter,
-      },
+      where,
       select: PIZZA_SELECT,
       orderBy: { createdAt: 'desc' },
     });
