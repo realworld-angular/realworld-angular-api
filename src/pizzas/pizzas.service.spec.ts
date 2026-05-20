@@ -1,7 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import {
-  NotFoundException,
-  ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
 import { PizzasService } from './pizzas.service';
@@ -64,11 +62,12 @@ describe('PizzasService', () => {
       ];
       mockPrisma.pizza.findMany.mockResolvedValue(pizzas);
 
-      const result = await service.findAll('pizzeria-1');
+      const result = await service.findAll('pizzeria-1', {});
 
       expect(mockPrisma.pizza.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { pizzeriaId: 'pizzeria-1' },
+          orderBy: { createdAt: 'desc' },
         }),
       );
       expect(result).toEqual([
@@ -79,7 +78,7 @@ describe('PizzasService', () => {
     it('filters by pizza name (trimmed, case-insensitive contains)', async () => {
       mockPrisma.pizza.findMany.mockResolvedValue([]);
 
-      await service.findAll('pizzeria-1', '  smoky  ');
+      await service.findAll('pizzeria-1', { name: '  smoky  ' });
 
       expect(mockPrisma.pizza.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -87,6 +86,7 @@ describe('PizzasService', () => {
             pizzeriaId: 'pizzeria-1',
             name: { contains: 'smoky', mode: 'insensitive' },
           },
+          orderBy: { createdAt: 'desc' },
         }),
       );
     });

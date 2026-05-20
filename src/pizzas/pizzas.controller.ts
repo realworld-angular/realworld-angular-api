@@ -15,7 +15,6 @@ import {
   ApiOperation,
   ApiResponse,
   ApiCookieAuth,
-  ApiQuery,
   ApiOkResponse,
 } from '@nestjs/swagger';
 import { existsSync, readdirSync, statSync } from 'fs';
@@ -24,6 +23,7 @@ import { PizzasService } from './pizzas.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePizzaDto } from './dto/create-pizza.dto';
 import { UpdatePizzaDto } from './dto/update-pizza.dto';
+import { PizzaFilterDto } from './dto/pizza-filter.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -99,18 +99,12 @@ export class PizzasController {
 
   @Get('pizzerias/:pizzeriaId/pizzas')
   @ApiOperation({ summary: 'List pizzas for a pizzeria' })
-  @ApiQuery({
-    name: 'name',
-    required: false,
-    description:
-      'Filter pizzas whose name contains this string (case-insensitive)',
-  })
   @ApiResponse({ status: 200, description: 'List of pizzas' })
   findAll(
     @Param('pizzeriaId') pizzeriaId: string,
-    @Query('name') name?: string,
+    @Query() dto: PizzaFilterDto,
   ) {
-    return this.pizzasService.findAll(pizzeriaId, name);
+    return this.pizzasService.findAll(pizzeriaId, dto);
   }
 
   // Admin routes — no pizzeriaId needed, resolved from ownership
@@ -122,10 +116,10 @@ export class PizzasController {
   @ApiResponse({ status: 200, description: 'List of pizzas' })
   async findAllMine(
     @CurrentUser() user: { id: string; role: Role },
-    @Query('name') name?: string,
+    @Query() dto: PizzaFilterDto,
   ) {
     const pizzeriaId = await this.resolveAdminPizzeriaId(user.id, user.role);
-    return this.pizzasService.findAll(pizzeriaId, name);
+    return this.pizzasService.findAll(pizzeriaId, dto);
   }
 
   @Post('admin/pizzeria/pizzas')
