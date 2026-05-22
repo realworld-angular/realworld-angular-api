@@ -39,7 +39,7 @@ export class PizzasService {
   ) {}
 
   async findAll(pizzeriaId: string, dto: PizzaFilterDto) {
-    const { name, maxPrice } = dto;
+    const { name, maxPrice, page, limit = 8 } = dto;
 
     const where: {
       pizzeriaId: string;
@@ -56,12 +56,33 @@ export class PizzasService {
       where.basePrice = { lte: maxPrice };
     }
 
-    const rows = await this.prisma.pizza.findMany({
-      where,
-      select: PIZZA_SELECT,
-      orderBy: { createdAt: 'desc' },
-    });
-    return rows.map((r) => mapPizza(r));
+    if (page === undefined) {
+      const rows = await this.prisma.pizza.findMany({
+        where,
+        select: PIZZA_SELECT,
+        orderBy: { createdAt: 'desc' },
+      });
+      return rows.map((r) => mapPizza(r));
+    }
+
+    const skip = (page - 1) * limit;
+    const [rows, total] = await Promise.all([
+      this.prisma.pizza.findMany({
+        where,
+        select: PIZZA_SELECT,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.pizza.count({ where }),
+    ]);
+    return {
+      items: rows.map((r) => mapPizza(r)),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async create(
