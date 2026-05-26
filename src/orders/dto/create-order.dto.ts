@@ -5,6 +5,7 @@ import {
   IsArray,
   ValidateNested,
   IsInt,
+  IsNumber,
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -82,6 +83,24 @@ export class CreateOrderDto {
     type: [OrderItemDto],
     description: 'Items to include in this order',
   })
+  @ApiPropertyOptional({
+    example: 3.5,
+    description: 'Optional tip amount to add to the order total',
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  tipAmount?: number;
+
+  @ApiPropertyOptional({
+    example: '2026-06-01T14:00:00Z',
+    description:
+      'Scheduled delivery time (ISO 8601). Omit for ASAP delivery.',
+  })
+  @IsOptional()
+  @IsString()
+  scheduledAt?: string;
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => OrderItemDto)

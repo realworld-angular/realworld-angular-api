@@ -21,6 +21,8 @@ const ORDER_SELECT = {
   billingCity: true,
   billingCountry: true,
   notes: true,
+  tipAmount: true,
+  scheduledAt: true,
   status: true,
   total: true,
   createdAt: true,
@@ -369,6 +371,8 @@ export class OrdersService {
       };
     });
 
+    total += dto.tipAmount ?? 0;
+
     const created = await this.prisma.order.create({
       data: {
         clientId,
@@ -380,6 +384,8 @@ export class OrdersService {
         billingCity: billingCity,
         billingCountry: billingCountry,
         notes: dto.notes,
+        tipAmount: dto.tipAmount ?? 0,
+        scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : null,
         total,
         items: {
           create: itemsData.map((item) => ({

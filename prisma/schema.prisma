@@ -119,6 +119,8 @@ model Order {
   billingCity           String?     @db.VarChar(120)
   billingCountry        String?     @db.VarChar(120)
   notes                 String?     @db.VarChar(300)
+  tipAmount             Float       @default(0)
+  scheduledAt           DateTime?
   status          OrderStatus @default(PENDING)
   total           Float
   createdAt       DateTime    @default(now())
