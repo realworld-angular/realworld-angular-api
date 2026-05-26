@@ -93,6 +93,11 @@ export class AuthService {
     return this.buildSession(user);
   }
 
+  async checkEmail(email: string): Promise<{ available: boolean }> {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    return { available: !user };
+  }
+
   /** Issue JWT + public user payload for an existing user. */
   async issueSessionForUserId(userId: string) {
     const user = await this.prisma.user.findUnique({

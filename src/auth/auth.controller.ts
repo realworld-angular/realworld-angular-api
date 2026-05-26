@@ -6,12 +6,14 @@ import {
   Res,
   HttpCode,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
+  ApiQuery,
   ApiCookieAuth,
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
@@ -85,6 +87,14 @@ export class AuthController {
   logout(@Res({ passthrough: true }) res: Response) {
     res.clearCookie('access_token', { path: '/' });
     return { message: 'Logged out' };
+  }
+
+  @Get('check-email')
+  @ApiOperation({ summary: 'Check if an email is already registered' })
+  @ApiQuery({ name: 'email', type: String })
+  @ApiResponse({ status: 200, description: 'Email availability status' })
+  async checkEmail(@Query('email') email: string) {
+    return this.authService.checkEmail(email);
   }
 
   @Get('me')
