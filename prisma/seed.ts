@@ -6,9 +6,6 @@ import * as bcrypt from 'bcrypt';
 
 const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false,
-  },
 });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter } as any);
@@ -499,6 +496,20 @@ async function main() {
   }
 
   console.log(`✅ Demo orders seeded — ${demoOrders.length} orders covering every status`);
+
+  // ---------------------------------------------------------------------------
+  // Coupon code
+  // ---------------------------------------------------------------------------
+
+  await prisma.couponCode.upsert({
+    where: { code: 'SAVE20' },
+    update: {},
+    create: {
+      code: 'SAVE20',
+      discountPercent: 20,
+    },
+  });
+  console.log('✅ Coupon code "SAVE20" created');
 
   // ---------------------------------------------------------------------------
   // Summary

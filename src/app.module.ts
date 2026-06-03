@@ -9,6 +9,7 @@ import { OrdersModule } from './orders/orders.module';
 import { OrderEventsModule } from './order-events/order-events.module';
 import { OrderJobModule } from './order-job/order-job.module';
 import { PhotonModule } from './photon/photon.module';
+import { CouponsModule } from './coupons/coupons.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { PhotonModule } from './photon/photon.module';
     PizzasModule,
     OrderEventsModule,
     OrdersModule,
+    CouponsModule,
     OrderJobModule,
   ],
 })

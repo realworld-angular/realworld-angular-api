@@ -9,8 +9,14 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Role, OrderStatus } from '../common/enums';
 import { OrderEventsService } from '../order-events/order-events.service';
 import { PhotonLocationService } from '../photon/photon-location.service';
+import { CouponsService } from '../coupons/coupons.service';
 
 const mockOrderEvents = { emit: jest.fn() };
+const mockCoupons = {
+  validate: jest.fn().mockResolvedValue({ valid: false, message: 'Coupon code not found', discountPercent: 0 }),
+  markUsed: jest.fn().mockResolvedValue(undefined),
+  resolveCode: jest.fn().mockResolvedValue(null),
+};
 const mockPhoton = {
   verifyCityCountry: jest.fn().mockResolvedValue(undefined),
 };
@@ -38,6 +44,7 @@ describe('OrdersService', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: OrderEventsService, useValue: mockOrderEvents },
         { provide: PhotonLocationService, useValue: mockPhoton },
+        { provide: CouponsService, useValue: mockCoupons },
       ],
     }).compile();
 
@@ -76,6 +83,9 @@ describe('OrdersService', () => {
       notes: null as string | null,
       status: OrderStatus.PENDING,
       total: 26,
+      tipAmount: 0,
+      discountAmount: null,
+      couponCodeId: null,
       createdAt: new Date(0),
       updatedAt: new Date(0),
       pizzeria: { id: 'pz-1', name: 'Test', city: 'Naples', country: 'Italy' },
@@ -88,6 +98,8 @@ describe('OrdersService', () => {
       notes: null,
       status: OrderStatus.PENDING,
       total: 26,
+      tipAmount: 0,
+      discountAmount: null,
       createdAt: new Date(0),
       updatedAt: new Date(0),
       pizzeria: { id: 'pz-1', name: 'Test', city: 'Naples', country: 'Italy' },
@@ -319,6 +331,9 @@ describe('OrdersService', () => {
           notes: null as string | null,
           status: OrderStatus.PENDING,
           total: 1,
+          tipAmount: 0,
+          discountAmount: null,
+          couponCodeId: null,
           createdAt: new Date(0),
           updatedAt: new Date(0),
           pizzeria: {
@@ -344,6 +359,8 @@ describe('OrdersService', () => {
           notes: null,
           status: OrderStatus.PENDING,
           total: 1,
+          tipAmount: 0,
+          discountAmount: null,
           createdAt: new Date(0),
           updatedAt: new Date(0),
           pizzeria: {
@@ -377,6 +394,9 @@ describe('OrdersService', () => {
       notes: null as string | null,
       status: OrderStatus.PENDING,
       total: 10,
+      tipAmount: 0,
+      discountAmount: null,
+      couponCodeId: null,
       createdAt: new Date(0),
       updatedAt: new Date(0),
       client: { id: 'client-1' },
@@ -410,6 +430,8 @@ describe('OrdersService', () => {
         notes: null,
         status: OrderStatus.PENDING,
         total: 10,
+        tipAmount: 0,
+        discountAmount: null,
         createdAt: new Date(0),
         updatedAt: new Date(0),
         client: { id: 'client-1' },
@@ -453,6 +475,9 @@ describe('OrdersService', () => {
         notes: null as string | null,
         status: OrderStatus.CANCELLED,
         total: 10,
+        tipAmount: 0,
+        discountAmount: null,
+        couponCodeId: null,
         createdAt: new Date(0),
         updatedAt: new Date(0),
         pizzeria: { id: 'pz-1', name: 'P', city: 'Naples', country: 'Italy' },
@@ -477,6 +502,8 @@ describe('OrdersService', () => {
         notes: null,
         status: OrderStatus.CANCELLED,
         total: 10,
+        tipAmount: 0,
+        discountAmount: null,
         createdAt: new Date(0),
         updatedAt: new Date(0),
         pizzeria: { id: 'pz-1', name: 'P', city: 'Naples', country: 'Italy' },
@@ -521,6 +548,9 @@ describe('OrdersService', () => {
         notes: null as string | null,
         status: OrderStatus.DELIVERED,
         total: 10,
+        tipAmount: 0,
+        discountAmount: null,
+        couponCodeId: null,
         createdAt: new Date(0),
         updatedAt: new Date(0),
         pizzeria: { id: 'pz-1', name: 'P', city: 'Naples', country: 'Italy' },
@@ -549,6 +579,8 @@ describe('OrdersService', () => {
         notes: null,
         status: OrderStatus.DELIVERED,
         total: 10,
+        tipAmount: 0,
+        discountAmount: null,
         createdAt: new Date(0),
         updatedAt: new Date(0),
         pizzeria: { id: 'pz-1', name: 'P', city: 'Naples', country: 'Italy' },

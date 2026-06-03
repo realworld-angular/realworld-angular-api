@@ -11,6 +11,7 @@ import { Role, OrderStatus } from '../common/enums';
 import { OrderEventsService } from '../order-events/order-events.service';
 import type { Address } from '../common/dto/address.dto';
 import { PhotonLocationService } from '../photon/photon-location.service';
+import { CouponsService } from '../coupons/coupons.service';
 
 const ORDER_SELECT = {
   id: true,
@@ -25,6 +26,8 @@ const ORDER_SELECT = {
   scheduledAt: true,
   status: true,
   total: true,
+  discountAmount: true,
+  couponCodeId: true,
   createdAt: true,
   updatedAt: true,
   pizzeria: { select: { id: true, name: true, city: true, country: true } },
@@ -48,6 +51,7 @@ const ADMIN_ORDER_LIST_SELECT = {
   id: true,
   status: true,
   total: true,
+  discountAmount: true,
   createdAt: true,
   updatedAt: true,
   pizzeria: { select: { id: true, name: true, city: true, country: true } },
@@ -73,6 +77,7 @@ export class OrdersService {
     private readonly prisma: PrismaService,
     private readonly orderEvents: OrderEventsService,
     private readonly photon: PhotonLocationService,
+    private readonly couponsService: CouponsService,
   ) {}
 
   private normalizeOrderAddressInput(a: Address): Address {
@@ -108,6 +113,7 @@ export class OrdersService {
       billingStreetAddress: string | null;
       billingCity: string | null;
       billingCountry: string | null;
+      couponCodeId: string | null;
     },
   >(
     row: T,
@@ -119,6 +125,7 @@ export class OrdersService {
     | 'billingStreetAddress'
     | 'billingCity'
     | 'billingCountry'
+    | 'couponCodeId'
   > & {
     deliveryAddress: Address;
     billingAddress: Address | null;
@@ -140,6 +147,7 @@ export class OrdersService {
       billingStreetAddress: _bs,
       billingCity: _bc,
       billingCountry: _bco,
+      couponCodeId: _cid,
       ...rest
     } = row;
     return {
@@ -371,7 +379,20 @@ export class OrdersService {
       };
     });
 
-    total += dto.tipAmount ?? 0;
+    let discountAmount: number | undefined;
+    let couponCodeId: string | undefined;
+
+    if (dto.couponCode) {
+      const result = await this.couponsService.validate(dto.couponCode, clientId);
+      if (!result.valid) {
+        throw new BadRequestException(result.message);
+      }
+      discountAmount = Math.round(total * result.discountPercent) / 100;
+      couponCodeId = (await this.couponsService.resolveCode(dto.couponCode))!.id;
+      total = total - discountAmount + (dto.tipAmount ?? 0);
+    } else {
+      total += dto.tipAmount ?? 0;
+    }
 
     const created = await this.prisma.order.create({
       data: {
@@ -387,6 +408,8 @@ export class OrdersService {
         tipAmount: dto.tipAmount ?? 0,
         scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : null,
         total,
+        discountAmount,
+        couponCodeId,
         items: {
           create: itemsData.map((item) => ({
             pizzaId: item.pizzaId,
@@ -402,6 +425,10 @@ export class OrdersService {
       },
       select: ORDER_SELECT,
     });
+
+    if (couponCodeId) {
+      await this.couponsService.markUsed(couponCodeId, clientId, created.id);
+    }
 
     const items = created.items.map((item) => this.mapOrderItem(item));
     this.orderEvents.emit(clientId, {

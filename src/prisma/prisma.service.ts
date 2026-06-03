@@ -10,10 +10,7 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
 
   constructor() {
     this.pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: {
-        rejectUnauthorized: false,
-      },
+      connectionString: process.env.DATABASE_URL
     });
   }
 
@@ -59,6 +56,14 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
 
   get pizzaToppingOption() {
     return this.client.pizzaToppingOption;
+  }
+
+  get couponCode() {
+    return this.client.couponCode;
+  }
+
+  get couponUsage() {
+    return this.client.couponUsage;
   }
 
   $disconnect() {

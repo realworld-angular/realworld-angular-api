@@ -47,6 +47,7 @@ model User {
   // Relations
   ownedPizzerias    Pizzeria[]           @relation("PizzeriaOwner")
   orders            Order[]
+  couponUsages      CouponUsage[]
 }
 
 model Pizzeria {
@@ -123,13 +124,16 @@ model Order {
   scheduledAt           DateTime?
   status          OrderStatus @default(PENDING)
   total           Float
+  couponCodeId    String?
+  discountAmount  Float?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
   // Relations
-  client   User        @relation(fields: [clientId], references: [id])
-  pizzeria Pizzeria    @relation(fields: [pizzeriaId], references: [id])
-  items    OrderItem[]
+  client      User          @relation(fields: [clientId], references: [id])
+  pizzeria    Pizzeria      @relation(fields: [pizzeriaId], references: [id])
+  items       OrderItem[]
+  couponUsage CouponUsage[]
 }
 
 model OrderItem {
@@ -153,4 +157,28 @@ model OrderItemTopping {
   topping   PizzaToppingOption  @relation(fields: [toppingId], references: [id])
 
   @@id([orderItemId, toppingId])
+}
+
+model CouponCode {
+  id              String   @id @default(cuid())
+  code            String   @unique
+  discountPercent Int      @default(20)
+  createdAt       DateTime @default(now())
+
+  usages CouponUsage[]
+}
+
+model CouponUsage {
+  id           String   @id @default(cuid())
+  couponCodeId String
+  userId       String
+  orderId      String
+  usedAt       DateTime @default(now())
+
+  couponCode CouponCode @relation(fields: [couponCodeId], references: [id])
+  user       User       @relation(fields: [userId], references: [id])
+  order      Order      @relation(fields: [orderId], references: [id])
+
+  @@unique([couponCodeId, userId])
+  @@index([userId])
 }

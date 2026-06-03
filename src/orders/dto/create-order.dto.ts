@@ -101,6 +101,14 @@ export class CreateOrderDto {
   @IsString()
   scheduledAt?: string;
 
+  @ApiPropertyOptional({
+    example: 'SAVE20',
+    description: 'Optional coupon code for discount',
+  })
+  @IsOptional()
+  @IsString()
+  couponCode?: string;
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => OrderItemDto)
