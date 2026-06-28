@@ -30,7 +30,7 @@ jobs:
         run: pnpm build
 
   cve:
-    name: CVE
+    name: CVE check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
