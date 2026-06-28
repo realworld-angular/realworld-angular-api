@@ -29,6 +29,12 @@ jobs:
       - name: Build
         run: pnpm build
 
+  cve:
+    name: CVE
+    runs-on: ubuntu-latest
+    steps:
+      - uses: OWASP/cve-lite-cli@v1.25.0
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
